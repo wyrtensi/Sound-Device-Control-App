@@ -1,6 +1,6 @@
 Volume control and playback device switch with hotkey and mouse. Fow windows. Uses python+powershell.
 
-Uses python notifications.
+Uses python notifications. Filters microphones by name "microphone" to exclude em from device list.
 
 
 
@@ -27,3 +27,4 @@ pip install pystray pillow keyboard mouse pycaw pyinstaller comtypes
 Requires module to be installed via powershell(administrative):
 
 Install-Module -Name AudioDeviceCmdlets -Force -SkipPublisherCheck
+
