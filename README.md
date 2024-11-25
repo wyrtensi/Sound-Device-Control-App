@@ -1,11 +1,11 @@
-Volume control and playback device switch with hotkey and mouse. Uses python notifications. For Windows. Uses python+powershell.
+Sound volume control and playback device switch with hotkey and mouse. Uses python notifications. For Windows. Uses python+powershell.
 
 Filters microphones by name "microphone" to exclude em from device list. Simply rename your microphones to "microphone".
 
 
 
 
-win+mouse scroll for volume control.
+win+mouse scroll for sound volume control.
 
 win+page up, win+page down for playback device switch.
 
