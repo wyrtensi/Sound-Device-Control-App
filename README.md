@@ -1,6 +1,6 @@
-Volume control and playback device switch with hotkey and mouse. Fow windows. Uses python+powershell.
+Volume control and playback device switch with hotkey and mouse. Uses python notifications. For Windows. Uses python+powershell.
 
-Uses python notifications. Filters microphones by name "microphone" to exclude em from device list. Simply rename your microphones to "microphone".
+Filters microphones by name "microphone" to exclude em from device list. Simply rename your microphones to "microphone".
 
 
 
