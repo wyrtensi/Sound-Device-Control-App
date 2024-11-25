@@ -1,4 +1,4 @@
-Volume control and playback device switch with hotkey and mouse.
+Volume control and playback device switch with hotkey and mouse. Fow windows. Uses python+powershell.
 
 Uses python notifications.
 
