@@ -19,17 +19,7 @@ Tray icon to show its launched and be able to close it without using task manage
 
 Requires requirements to be installed via cmd:
 
-pip install pystray pillow
-
-pip install keyboard
-
-pip install mouse
-
-pip install pycaw
-
-pip install pyinstaller
-
-pip install comtypes
+pip install pystray pillow keyboard mouse pycaw pyinstaller comtypes
 
 
 
