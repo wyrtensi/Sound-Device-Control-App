@@ -5,9 +5,9 @@ Playback Device Switch Sound Volume
 Фильтрует микрофоны по имени "microphone" чтобы исключить их из списка устройств. Просто переименуйте свои микрофоны в "microphone".
 
 
-Вот список необходимых пакетов для работы этой программы. Вы можете установить их с помощью pip в cmd:
+Вот список необходимых пакетов для работы этой программы. Вы можете установить их с помощью cmd:
 
-pip flask pynput pycaw pywin32 mouse pystray pillow comtypes
+pip install flask pynput pycaw pywin32 mouse pystray pillow comtypes
 
 Также вам потребуется PowerShell модуль AudioDeviceCmdlets, который программа попытается установить автоматически при первом запуске. Если этого не произойдет, вы можете установить его вручную через PowerShell с правами администратора:
 
