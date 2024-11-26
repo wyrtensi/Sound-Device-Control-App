@@ -1,0 +1,18 @@
+{
+    "volume_up": {
+        "keyboard": "win",
+        "mouse": "scrollup"
+    },
+    "volume_down": {
+        "keyboard": "win",
+        "mouse": "scrolldown"
+    },
+    "prev_device": {
+        "keyboard": "win+pagedown",
+        "mouse": "Нет"
+    },
+    "next_device": {
+        "keyboard": "win+pageup",
+        "mouse": "Нет"
+    }
+}
