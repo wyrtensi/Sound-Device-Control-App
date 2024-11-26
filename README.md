@@ -1,30 +1,13 @@
-Sound volume control and playback device switch with hotkey and mouse. Uses python notifications. For Windows. Uses python+powershell.
+Управление регулировкой громкости и переключение устройств воспроизведения горячими клавишами клавиатуры или мыши. Использует уведомления питон, html,js для настройки, доступна в трее. Только для Windows. Использует python+powershell+html+js.
 
-Filters microphones by name "microphone" to exclude em from device list. Simply rename your microphones to "microphone".
-
-
+Фильтрует микрофоны по имени "microphone" чтобы исключить их из списка устройств. Просто переименуйте свои микрофоны в "microphone".
 
 
-win+mouse scroll for sound volume control.
+Вот список необходимых пакетов для работы этой программы. Вы можете установить их с помощью pip:
 
-win+page up, win+page down for playback device switch.
+pip flask pynput pycaw pywin32 mouse pystray pillow comtypes
 
+Также вам потребуется PowerShell модуль AudioDeviceCmdlets, который программа попытается установить автоматически при первом запуске. Если этого не произойдет, вы можете установить его вручную через PowerShell с правами администратора:
 
-
-
-Tray icon to show its launched and be able to close it without using task manager.
-
-
-
-
-Requires requirements to be installed via cmd:
-
-pip install pystray pillow keyboard mouse pycaw pyinstaller comtypes
-
-
-
-
-Requires module to be installed via powershell(administrative):
-
-Install-Module -Name AudioDeviceCmdlets -Force -SkipPublisherCheck
+Install-Module -Name AudioDeviceCmdlets -Force -Scope CurrentUser
 
