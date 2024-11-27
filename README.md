@@ -7,7 +7,7 @@ Playback Device Switch Sound Volume
 
 Вот список необходимых пакетов для работы этой программы. Вы можете установить их с помощью cmd:
 
-pip install flask pynput pycaw pywin32 mouse pystray pillow comtypes
+pip install flask pynput pycaw pywin32 mouse pystray pillow comtypes keyboard six
 
 Также вам потребуется PowerShell модуль AudioDeviceCmdlets, который программа попытается установить автоматически при первом запуске. Если этого не произойдет, вы можете установить его вручную через PowerShell с правами администратора:
 
