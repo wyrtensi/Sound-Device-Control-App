@@ -8,7 +8,6 @@ App features:
 4. Hotkeys for play/plause, next/pervious song.
 5. Intuitive interface for hotkeys assignment. 
 
-It filters microphones by the name "microphone" to exclude them from the output device list. Simply rename your microphones to "microphone" to achieve this.
 ![image](https://github.com/user-attachments/assets/2a08f2ed-6898-49d4-8a4f-29a0213d7091)
 
 Here is the list of required packages for this program. You can install them using CMD:
