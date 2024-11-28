@@ -15,9 +15,11 @@ How to install:
 2. Install requirements, launch cmd and paste this:
 
 pip install flask pynput pycaw pywin32 mouse pystray pillow comtypes keyboard six
+
 3. Install AudioDeviceCmdlets Powershell module, launch Windows PowerShell as administrator and paste this:
 
 Install-Module -Name AudioDeviceCmdlets -Force -Scope CurrentUser
+
 4. Launch main.py and enjoy the app.
 
 ![image](https://github.com/user-attachments/assets/02de48b0-698b-416b-8cc5-6d1eea045e8e)
