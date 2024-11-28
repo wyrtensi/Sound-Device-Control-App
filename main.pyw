@@ -22,7 +22,7 @@ import pystray
 from PIL import Image, ImageDraw
 import webbrowser
 
-# Константы Windows для отправки сообщений
+# Windows constants for sending messages
 WM_APPCOMMAND = 0x319
 APPCOMMAND_VOLUME_UP = 0x0a
 APPCOMMAND_VOLUME_DOWN = 0x09
@@ -30,7 +30,7 @@ APPCOMMAND_MEDIA_PLAY_PAUSE = 0x0E
 APPCOMMAND_MEDIA_NEXTTRACK = 0x0B
 APPCOMMAND_MEDIA_PREVIOUSTRACK = 0x0C
 
-# Определения для Windows Hook
+# Definitions for Windows Hook
 WH_MOUSE_LL = 14
 WM_MOUSEWHEEL = 0x020A
 WM_LBUTTONDOWN = 0x0201
@@ -40,7 +40,7 @@ WM_RBUTTONUP = 0x0205
 WM_MBUTTONDOWN = 0x0207
 WM_MBUTTONUP = 0x0208
 
-# Структура для хука мыши
+# Mouse hook structure
 class MSLLHOOKSTRUCT(ctypes.Structure):
     _fields_ = [
         ('pt', wintypes.POINT),
@@ -50,17 +50,17 @@ class MSLLHOOKSTRUCT(ctypes.Structure):
         ('dwExtraInfo', ctypes.c_void_p)
     ]
 
-# Константы DirectInput
+# DirectInput constants
 DIMOFS_Z = 8
 DIMOUSESTATE2 = wintypes.LONG * 8
 
-# Flask приложение
+# Flask application
 app = Flask(__name__)
 
-# Файл для хранения настроек
+# Settings file
 SETTINGS_FILE = "settings.json"
 
-# Обновляем дефолтные настройки с правильной структурой
+# Update default settings with correct structure
 default_hotkeys = {
     "volume_up": {
         "keyboard": "ctrl",
@@ -72,112 +72,112 @@ default_hotkeys = {
     },
     "prev_device": {
         "keyboard": "win+pageup",
-        "mouse": "Нет"
+        "mouse": "None"
     },
     "next_device": {
         "keyboard": "win+pagedown",
-        "mouse": "Нет"
+        "mouse": "None"
     },
     "media_play_pause": {
         "keyboard": "ctrl+space",
-        "mouse": "Нет"
+        "mouse": "None"
     },
     "media_next": {
         "keyboard": "ctrl+right",
-        "mouse": "Нет"
+        "mouse": "None"
     },
     "media_previous": {
         "keyboard": "ctrl+left",
-        "mouse": "Нет"
+        "mouse": "None"
     }
 }
 
 def create_default_settings():
-    """Создает файл настроек по умолчанию"""
+    """Creates default settings file"""
     try:
         with open('settings.json', 'w', encoding='utf-8') as f:
             json.dump(default_hotkeys, f, ensure_ascii=False, indent=4)
         return True
     except Exception as e:
-        print(f"Ошибка при создании файла настроек: {e}")
+        print(f"Error creating settings file: {e}")
         return False
 
 def load_settings():
-    """Загружает настройки из файла"""
+    """Loads settings from file"""
     try:
-        # Пробуем загрузить существующие настройки
+        # Try to load existing settings
         with open('settings.json', 'r', encoding='utf-8') as f:
             settings = json.load(f)
             
-        # Проверяем структуру и исправляем если нужно
+        # Check structure and fix if needed
         fixed_settings = {}
         for action, combo in settings.items():
             if isinstance(combo, dict) and "keyboard" in combo and "mouse" in combo:
-                # Структура правильная, копируем как есть
+                # Structure is correct, copy as is
                 fixed_settings[action] = combo
             elif isinstance(combo, dict):
-                # Структура неправильная, исправляем
+                # Structure needs fixing
                 keyboard_keys = []
                 mouse_keys = []
                 
-                # Собираем все клавиши
+                # Collect all keys
                 all_keys = []
                 for field, value in combo.items():
-                    if value and value.lower() != "нет":
+                    if value and value.lower() != "none":
                         all_keys.extend(value.lower().split('+'))
                 
-                # Распределяем клавиши
+                # Distribute keys
                 for key in all_keys:
                     if ('scroll' in key or 'mouse' in key or 
-                        key in ['лкм', 'пкм', 'скм', 'scrollup', 'scrolldown']):
+                        key in ['lmb', 'rmb', 'mmb', 'scrollup', 'scrolldown']):
                         if 'up' in key:
                             mouse_keys.append('scrollup')
                         elif 'down' in key:
                             mouse_keys.append('scrolldown')
-                        elif 'left' in key or key == 'лкм':
+                        elif 'left' in key or key == 'lmb':
                             mouse_keys.append('mouseleft')
-                        elif 'right' in key or key == 'пкм':
+                        elif 'right' in key or key == 'rmb':
                             mouse_keys.append('mouseright')
-                        elif 'middle' in key or key == 'скм':
+                        elif 'middle' in key or key == 'mmb':
                             mouse_keys.append('mousemiddle')
                     else:
                         keyboard_keys.append(key)
                 
                 fixed_settings[action] = {
-                    "keyboard": '+'.join(keyboard_keys) if keyboard_keys else "Нет",
-                    "mouse": '+'.join(mouse_keys) if mouse_keys else "Нет"
+                    "keyboard": '+'.join(keyboard_keys) if keyboard_keys else "None",
+                    "mouse": '+'.join(mouse_keys) if mouse_keys else "None"
                 }
             else:
-                # Если полностью неправильная структура, берем значения по умолчанию
+                # If structure is completely wrong, use default values
                 fixed_settings[action] = default_hotkeys.get(action, {
-                    "keyboard": "Нет",
-                    "mouse": "Нет"
+                    "keyboard": "None",
+                    "mouse": "None"
                 })
         
-        # Сохраняем исправленные настройки
+        # Save fixed settings
         with open('settings.json', 'w', encoding='utf-8') as f:
             json.dump(fixed_settings, f, ensure_ascii=False, indent=4)
         
         return fixed_settings
     except FileNotFoundError:
-        # Если файл не существует, создаем новый
+        # If file doesn't exist, create new one
         create_default_settings()
         return default_hotkeys
     except Exception as e:
-        print(f"Ошибка при загрузке настроек: {e}")
+        print(f"Error loading settings: {e}")
         return default_hotkeys
 
 hotkeys = load_settings()
 
-# Получение списка аудиоустройств
+# Get list of audio devices
 def get_audio_devices():
-    # Указываем полный путь к PowerShell
+    # Specify full path to PowerShell
     powershell_path = r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
     
     ps_script = """
-    # Проверяем наличие модуля
+    # Check if module exists
     if (-not (Get-Module -ListAvailable -Name AudioDeviceCmdlets)) {
-        Write-Host "ERROR: AudioDeviceCmdlets не установлен"
+        Write-Host "ERROR: AudioDeviceCmdlets not installed"
         exit 1
     }
     
@@ -185,7 +185,7 @@ def get_audio_devices():
         $devices = Get-AudioDevice -List
         $devices | ForEach-Object { "$($_.Index),$($_.Name)" }
     } catch {
-        Write-Host "Ошибка при получении списка устройств"
+        Write-Host "Error getting device list"
     }
     """
     
@@ -197,8 +197,8 @@ def get_audio_devices():
             creationflags=subprocess.CREATE_NO_WINDOW
         )
         
-        if "ERROR: AudioDeviceCmdlets не установлен" in result.stdout:
-            print("Необходимо установить модуль AudioDeviceCmdlets. Установка...")
+        if "ERROR: AudioDeviceCmdlets not installed" in result.stdout:
+            print("AudioDeviceCmdlets module needs to be installed. Installing...")
             install_script = """
             Install-Module -Name AudioDeviceCmdlets -Force -Scope CurrentUser
             """
@@ -206,7 +206,7 @@ def get_audio_devices():
                 [powershell_path, "-Command", install_script],
                 creationflags=subprocess.CREATE_NO_WINDOW
             )
-            # Повторяем попытку получить устройства после установки
+            # Retry getting devices after installation
             result = subprocess.run(
                 [powershell_path, "-Command", ps_script],
                 capture_output=True,
@@ -219,16 +219,16 @@ def get_audio_devices():
         return devices
         
     except FileNotFoundError:
-        print("Ошибка: PowerShell не найден по пути", powershell_path)
+        print("Error: PowerShell not found at path", powershell_path)
         return []
 
-# Установка устройства по умолчанию
+# Set default audio device
 def set_default_audio_device(device_index):
     ps_script = f"""
     try {{
         Set-AudioDevice -Index {device_index}
     }} catch {{
-        Write-Host "Ошибка при установке устройства по умолчаию: $_"
+        Write-Host "Error setting default device: $_"
     }}
     """
     
@@ -240,13 +240,13 @@ def set_default_audio_device(device_index):
             creationflags=subprocess.CREATE_NO_WINDOW
         )
         if result.stderr:
-            print(f"Ошибка PowerShell: {result.stderr}")
+            print(f"PowerShell error: {result.stderr}")
         if result.stdout:
-            print(f"Вывод PowerShell: {result.stdout}")
+            print(f"PowerShell output: {result.stdout}")
     except Exception as e:
-        print(f"Ошибка при выполнении PowerShell: {e}")
+        print(f"Error executing PowerShell: {e}")
 
-# Уведомления о смене устройства
+# Device change notifications
 def show_notification(device_name):
     root = tk.Tk()
     root.overrideredirect(True)
@@ -259,70 +259,70 @@ def show_notification(device_name):
     root.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
     root.attributes("-topmost", 1)
     root.configure(bg="#333333")
-    label = tk.Label(root, text=f"Переключено на: {device_name}", font=("Arial", 12, "bold"), fg="white", bg="#333333")
+    label = tk.Label(root, text=f"Switched to: {device_name}", font=("Arial", 12, "bold"), fg="white", bg="#333333")
     label.pack(expand=True)
     root.after(1000, root.destroy)
     root.mainloop()
 
-# Отправка сообщений для регулировки громкости
+# Send messages for volume control
 def send_volume_message(app_command):
     hwnd = ctypes.windll.user32.GetForegroundWindow()
     ctypes.windll.user32.SendMessageW(hwnd, WM_APPCOMMAND, 0, app_command * 0x10000)
 
 def send_media_message(app_command):
-    """Отправляет команду управления медиа"""
+    """Sends media control command"""
     hwnd = ctypes.windll.user32.GetForegroundWindow()
     ctypes.windll.user32.SendMessageW(hwnd, WM_APPCOMMAND, 0, app_command * 0x10000)
 
-# Обновление горячих клавиш для регулировки громкости
+# Update hotkeys for volume control
 def update_volume_hotkeys():
-    # Удалим старые горячие клавиши, если они зарегистрированы
+    # Remove old hotkeys if they are registered
     if hotkeys["volume_up"] in keyboard._hotkeys:
         keyboard.remove_hotkey(hotkeys["volume_up"])
     if hotkeys["volume_down"] in keyboard._hotkeys:
         keyboard.remove_hotkey(hotkeys["volume_down"])
 
-    # Добавим новые горячие клавиши
+    # Add new hotkeys
     keyboard.add_hotkey(hotkeys["volume_up"], lambda: send_volume_message(APPCOMMAND_VOLUME_UP))
     keyboard.add_hotkey(hotkeys["volume_down"], lambda: send_volume_message(APPCOMMAND_VOLUME_DOWN))
 
-# Обработчик событий мыши
+# Mouse event handler
 def on_scroll(x, y, dx, dy):
-    if dy > 0:  # Прокрутка вверх
+    if dy > 0:  # Scroll up
         send_volume_message(APPCOMMAND_VOLUME_UP)
-    elif dy < 0:  # Прокрутка вниз
+    elif dy < 0:  # Scroll down
         send_volume_message(APPCOMMAND_VOLUME_DOWN)
 
-# Добавьте эту глобальную переменную в начало файла после импортов
+# Add this global variable at the beginning of the file after imports
 current_device_index = 0
 
 keyboard_controller = KeyboardController()
 mouse_controller = MouseController()
 
-# Глобальные переменные для отслеживания состояния клавиш
+# Global variables for tracking key states
 pressed_keyboard_keys = set()
 pressed_mouse_buttons = set()
 scroll_direction = None
 key_lock = Lock()
 
 def normalize_key_name(key_str):
-    """Нормализует названия клавиш"""
+    """Normalizes key names"""
     key_mapping = {
-        # Специальные клавиши
+        # Special keys
         'arrowup': 'up',
         'arrowdown': 'down',
         'arrowleft': 'left',
         'arrowright': 'right',
         'page_up': 'pageup',
         'page_down': 'pagedown',
-        'нет': '',
+        'none': '',
         'space': 'space',
-        # Стрелки
+        # Arrows
         'up': 'up',
         'down': 'down',
         'left': 'left',
         'right': 'right',
-        # Модификаторы
+        # Modifiers
         'ctrl_l': 'ctrl',
         'ctrl_r': 'ctrl',
         'alt_l': 'alt',
@@ -331,16 +331,16 @@ def normalize_key_name(key_str):
         'shift_r': 'shift',
         'cmd': 'win',
         'cmd_r': 'win',
-        # Мышь
+        # Mouse
         'mouseleft': 'mouseleft',
         'mouseright': 'mouseright',
         'mousemiddle': 'mousemiddle',
         'scrollup': 'scrollup',
         'scrolldown': 'scrolldown',
-        'лкм': 'mouseleft',
-        'пкм': 'mouseright',
-        'скм': 'mousemiddle',
-        # Кириллица -> латиница
+        'lmb': 'mouseleft',
+        'rmb': 'mouseright',
+        'mmb': 'mousemiddle',
+        # Cyrillic -> Latin
         'ф': 'a', 'и': 'b', 'с': 'c', 'в': 'd', 'у': 'e',
         'а': 'f', 'п': 'g', 'р': 'h', 'ш': 'i', 'о': 'j',
         'л': 'k', 'д': 'l', 'ь': 'm', 'т': 'n', 'щ': 'o',
@@ -349,11 +349,11 @@ def normalize_key_name(key_str):
         'я': 'z'
     }
     
-    # Удаляем префикс 'key.' если он есть
+    # Remove 'key.' prefix if it exists
     if key_str.lower().startswith('key.'):
         key_str = key_str[4:]
     
-    # Проверяем наличие ключа в маппинге
+    # Check if key is in mapping
     normalized = key_mapping.get(key_str.lower(), key_str.lower())
     
     return normalized
@@ -361,7 +361,7 @@ def normalize_key_name(key_str):
 def on_key_press(key):
     with key_lock:
         try:
-            # Получаем строковое представление клавиши
+            # Get string representation of the key
             if isinstance(key, KeyCode) and key.char is not None:
                 key_str = normalize_key_name(key.char.lower())
             else:
@@ -414,24 +414,24 @@ class KeyboardMouseTracker:
         self._right_pressed = False
         self._middle_pressed = False
         
-        # Инициализация слушателя клавиатуры
+        # Initialize keyboard listener
         self.keyboard_listener = keyboard.Listener(
             on_press=self._on_key_press,
             on_release=self._on_key_release
         )
         
-        # Устанавливаем обработчик событий мыши
+        # Set mouse event handler
         mouse.hook(self._on_mouse_event)
         print("KeyboardMouseTracker initialized")
         
         self.state_cache = None
         self.last_state_update = 0
-        self.state_cache_lifetime = 0.008  # 8мс кэширование состояния
+        self.state_cache_lifetime = 0.008  # 8ms cache for state
     
     def _on_mouse_event(self, event):
-        """Обработчик событий мыши"""
+        """Mouse event handler"""
         try:
-            # Прорем наличие атрибута delta (кк в работающем коде)
+            # Check for delta attribute (as in working code)
             if hasattr(event, 'delta'):
                 with self.lock:
                     if event.delta > 0:
@@ -442,7 +442,7 @@ class KeyboardMouseTracker:
                         Thread(target=self._reset_scroll, daemon=True).start()
                 return
             
-            # Игнорируем события движения мыши
+            # Ignore mouse move events
             if getattr(event, 'event_type', None) == 'move':
                 return
 
@@ -450,14 +450,14 @@ class KeyboardMouseTracker:
             print(f"Error in mouse event handler: {e}")
 
     def _on_key_press(self, key):
-        """Обработчик нажатия клавиш"""
+        """Key press handler"""
         try:
             if isinstance(key, keyboard.KeyCode) and key.char is not None:
                 key_str = key.char.lower()
             else:
                 key_str = str(key).lower().replace('key.', '')
             
-            # Нормализуем название клавиши
+            # Normalize key name
             key_str = normalize_key_name(key_str)
             
             with self.lock:
@@ -467,14 +467,14 @@ class KeyboardMouseTracker:
             print(f"Error in key press handler: {e}")
 
     def _on_key_release(self, key):
-        """Обработчик отпускания клавиш"""
+        """Key release handler"""
         try:
             if isinstance(key, keyboard.KeyCode) and key.char is not None:
                 key_str = key.char.lower()
             else:
                 key_str = str(key).lower().replace('key.', '')
             
-            # Нормализуем название клавиши
+            # Normalize key name
             key_str = normalize_key_name(key_str)
             
             with self.lock:
@@ -484,10 +484,10 @@ class KeyboardMouseTracker:
             print(f"Error in key release handler: {e}")
 
     def _track_mouse_buttons(self):
-        """Отслеживает состояние кнопок мыши"""
+        """Tracks mouse button states"""
         while not self.stop_event.is_set():
             try:
-                time.sleep(0.008)  # Уменьшаем частоту опроса состояния мыши
+                time.sleep(0.008)  # Reduce polling frequency
                 
                 left = win32api.GetKeyState(win32con.VK_LBUTTON) < 0
                 right = win32api.GetKeyState(win32con.VK_RBUTTON) < 0
@@ -520,7 +520,7 @@ class KeyboardMouseTracker:
                         self._middle_pressed = middle
                         changed = True
                     
-                    # Сбрасываем кэш только если состояние изменилось
+                    # Reset cache only if state changed
                     if changed:
                         self.state_cache = None
 
@@ -529,20 +529,20 @@ class KeyboardMouseTracker:
                 time.sleep(0.1)
 
     def _reset_scroll(self):
-        """Сбрасывает направление скролла"""
+        """Resets scroll direction"""
         time.sleep(0.2)
         with self.lock:
             self.scroll_direction = None
 
     def start(self):
-        """Запускает отслеживание"""
+        """Starts tracking"""
         self.keyboard_listener.start()
         self.mouse_thread = Thread(target=self._track_mouse_buttons, daemon=True)
         self.mouse_thread.start()
         print("Tracking started")
 
     def stop(self):
-        """Останавливает отслеживание"""
+        """Stops tracking"""
         self.stop_event.set()
         self.keyboard_listener.stop()
         mouse.unhook_all()
@@ -550,10 +550,10 @@ class KeyboardMouseTracker:
             self.mouse_thread.join(timeout=1.0)
 
     def get_state(self):
-        """Возвращает текущее остояние с кэшированием"""
+        """Returns current state with caching"""
         current_time = time.time()
         
-        # Используем кэшированное состояние, если оно достаточно свежее
+        # Use cached state if it's fresh enough
         if self.state_cache and (current_time - self.last_state_update) < self.state_cache_lifetime:
             return self.state_cache
             
@@ -569,20 +569,20 @@ class KeyboardMouseTracker:
             return self.state_cache
 
 def handle_hotkeys(tracker):
-    """Обработчик горячих клавиш"""
-    last_action_time = {}  # Словарь для отслеживания времени последнего действия
+    """Hotkey handler"""
+    last_action_time = {}  # Dictionary for tracking last action time
     
     while True:
         try:
-            # Добавляем небольшую задержку для снижения нагрузки на CPU
-            time.sleep(0.008)  # 8мс задержка - компромисс между отзывчивостью и нагрузкой
+            # Add small delay to reduce CPU load
+            time.sleep(0.008)  # 8ms delay - compromise between responsiveness and load
             
             state = tracker.get_state()
             current_time = time.time()
             
             for action, combo in hotkeys.items():
-                # Проверяем, прошло ли достаточно времени с последнего действия
-                if current_time - last_action_time.get(action, 0) < 0.1:  # Минимум 100мс между действиями
+                # Check if enough time has passed since last action
+                if current_time - last_action_time.get(action, 0) < 0.1:  # Minimum 100ms between actions
                     continue
                     
                 if check_hotkey_combination(combo, state):
@@ -608,16 +608,16 @@ def handle_hotkeys(tracker):
             time.sleep(0.1)
 
 def check_hotkey_combination(hotkey, state):
-    """Проверяет комбинацию клавиш"""
+    """Checks hotkey combination"""
     try:
-        # Проверяем клавиши клавиатуры
+        # Check keyboard keys
         keyboard_keys = set(k.strip().lower() for k in hotkey['keyboard'].split('+') 
-                          if k.strip() and k.strip().lower() != 'нет')
+                          if k.strip() and k.strip().lower() != 'none')
         keyboard_match = all(key in state['keyboard'] for key in keyboard_keys)
 
-        # Проверяем клавиши мыши
+        # Check mouse keys
         mouse_keys = set(m.strip().lower() for m in hotkey['mouse'].split('+') 
-                        if m.strip() and m.strip().lower() != 'нет')
+                        if m.strip() and m.strip().lower() != 'none')
         mouse_match = True
         if mouse_keys:
             for mouse_key in mouse_keys:
@@ -633,16 +633,16 @@ def check_hotkey_combination(hotkey, state):
         return False
 
 def save_settings(settings):
-    """Сохраняет настройки в файл"""
+    """Saves settings to file"""
     try:
         with open('settings.json', 'w', encoding='utf-8') as f:
             json.dump(settings, f, ensure_ascii=False, indent=4)
         return True
     except Exception as e:
-        print(f"Ошибка при сохранении настроек: {e}")
+        print(f"Error saving settings: {e}")
         return False
 
-# Маршруты Flask
+# Flask routes
 @app.route("/")
 def index():
     return render_template("index.html", hotkeys=hotkeys)
@@ -651,66 +651,66 @@ def index():
 def update_hotkey():
     try:
         data = request.json
-        print("Received data:", data)  # Отладка
+        print("Received data:", data)  # Debug
         
         action = data["action"]
-        keyboard_keys = data.get("keyboard", "Нет")
-        mouse_keys = data.get("mouse", "Нет")
+        keyboard_keys = data.get("keyboard", "None")
+        mouse_keys = data.get("mouse", "None")
         
-        print(f"Action: {action}")  # Отладка
-        print(f"Keyboard keys: {keyboard_keys}")  # Отладка
-        print(f"Mouse keys: {mouse_keys}")  # Отладка
+        print(f"Action: {action}")  # Debug
+        print(f"Keyboard keys: {keyboard_keys}")  # Debug
+        print(f"Mouse keys: {mouse_keys}")  # Debug
 
-        # Загружаем текущие настройки
+        # Load current settings
         try:
             with open('settings.json', 'r', encoding='utf-8') as f:
                 current_hotkeys = json.load(f)
         except FileNotFoundError:
             current_hotkeys = default_hotkeys
 
-        # Обновляем настройки
+        # Update settings
         current_hotkeys[action] = {
             "keyboard": keyboard_keys,
             "mouse": mouse_keys
         }
 
-        print(f"Updated hotkeys: {current_hotkeys[action]}")  # Отладка
+        print(f"Updated hotkeys: {current_hotkeys[action]}")  # Debug
 
-        # Сохраняем настройки
+        # Save settings
         if save_settings(current_hotkeys):
-            # Обновляем глобальные настройки
+            # Update global settings
             global hotkeys
             hotkeys = current_hotkeys
             return jsonify({"status": "success", "hotkeys": current_hotkeys})
         else:
-            return jsonify({"status": "error", "message": "Ошибка при сохранении настроек"})
+            return jsonify({"status": "error", "message": "Error saving settings"})
 
     except Exception as e:
         print(f"Error in update_hotkey: {e}")
         import traceback
-        print(traceback.format_exc())  # Полный стек ошибки
+        print(traceback.format_exc())  # Full stack trace of the error
         return jsonify({"status": "error", "message": str(e)})
 
 @app.route("/save_settings", methods=["POST"])
 def save_settings_endpoint():
     try:
         data = request.json
-        # Проверяем формат данных
+        # Check data format
         for action, combo in data.items():
             if not isinstance(combo, dict) or "keyboard" not in combo or "mouse" not in combo:
                 return jsonify({
                     "status": "error",
-                    "message": f"Неверный формат данных для действия {action}"
+                    "message": f"Invalid data format for action {action}"
                 })
 
-        # Сохраняем настройки
+        # Save settings
         if save_settings(data):
-            # Обновляем глобальные настройки
+            # Update global settings
             global hotkeys
             hotkeys = data
             return jsonify({"status": "success"})
         else:
-            return jsonify({"status": "error", "message": "Ошибка при сохранении настроек"})
+            return jsonify({"status": "error", "message": "Error saving settings"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
 
@@ -728,83 +728,83 @@ def switch_audio_device(direction):
         device_index = devices[current_device_index][0]
         set_default_audio_device(device_index)
         
-        # Показываем уведомление о переключении
+        # Show notification about switching
         device_name = devices[current_device_index][1]
-        Thread(target=show_notification, args=(f"Переключено на: {device_name}",)).start()
+        Thread(target=show_notification, args=(f"Switched to: {device_name}",)).start()
         
     except Exception as e:
-        print(f"Ошибка при переключении устройства: {e}")
+        print(f"Error switching device: {e}")
 
 def create_icon():
-    """Создает розово-черно-бирюзовую иконку"""
+    """Creates pink-black-turquoise icon"""
     width = 128
     height = 128
     image = Image.new('RGBA', (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
     
-    # Розовый круг (Deep Pink)
+    # Pink circle (Deep Pink)
     draw.ellipse([10, 10, width-40, height-40], fill=(255, 20, 147, 255))
-    # Черный круг
+    # Black circle
     draw.ellipse([30, 30, width-20, height-20], fill=(0, 0, 0, 255))
-    # Бирюзовый круг (Turquoise)
+    # Turquoise circle
     draw.ellipse([50, 50, width, height], fill=(64, 224, 208, 255))
     
     image = image.resize((32, 32), Image.Resampling.LANCZOS)
     return image
 
 def open_settings(icon, item):
-    """Открывает настройки в браузере"""
+    """Opens settings in browser"""
     webbrowser.open('http://127.0.0.1:5000')
 
 def exit_app(icon, item):
-    """Закрывает приложение"""
+    """Closes the application"""
     icon.stop()
     global running
     running = False
 
 def setup_tray():
-    """Настраивает иконку в трее"""
+    """Sets up the tray icon"""
     icon = pystray.Icon(
         "Audio Device Switcher",
         icon=create_icon(),
         menu=pystray.Menu(
-            pystray.MenuItem("Настройи", open_settings, default=True),
-            pystray.MenuItem("Выход", exit_app)
+            pystray.MenuItem("Settings", open_settings, default=True),
+            pystray.MenuItem("Exit", exit_app)
         )
     )
     return icon
 
 def run_flask():
-    """Запускает Flask сервер"""
+    """Starts Flask server"""
     app.run(host='127.0.0.1', port=5000, debug=False)
 
 def main():
     global running, devices, current_device_index
     running = True
     
-    # Получаем список устройств
+    # Get list of devices
     devices = get_audio_devices()
     if not devices:
         print("No audio devices found!")
     else:
         print(f"Found {len(devices)} audio devices")
     
-    # Запускаем Flask сервер в отдельном потоке
+    # Start Flask server in a separate thread
     flask_thread = Thread(target=run_flask, daemon=True)
     flask_thread.start()
     print("Flask server started")
     
-    # Создаем и запускаем трекер
+    # Create and start tracker
     tracker = KeyboardMouseTracker()
     tracker.start()
     print("Mouse and keyboard tracking started")
 
-    # Запускаем обработчик горячих клавиш
+    # Start hotkey handler
     hotkey_thread = Thread(target=lambda: handle_hotkeys(tracker), daemon=True)
     hotkey_thread.start()
     print("Hotkey handler started")
 
-    # Создаем и запускаем иконку в трее
+    # Create and start tray icon
     tray_icon = setup_tray()
     tray_thread = Thread(target=lambda: tray_icon.run(), daemon=True)
     tray_thread.start()
@@ -820,7 +820,7 @@ def main():
         if hasattr(tray_icon, '_icon') and tray_icon._icon:
             tray_icon.stop()
 
-# Инициализация глобальных переменных в начале файла
+# Initialize global variables at the beginning of the file
 pressed_keyboard_keys = set()
 pressed_mouse_buttons = set()
 scroll_direction = None
@@ -828,7 +828,7 @@ key_lock = Lock()
 current_device_index = 0
 mouse_listener = None
 
-# Загрузка сохраненных настроек при запуске
+# Load saved settings on startup
 try:
     with open('settings.json', 'r', encoding='utf-8') as f:
         hotkeys = json.load(f)
@@ -837,7 +837,7 @@ except FileNotFoundError:
     hotkeys = default_hotkeys
     print(f"Using default hotkeys: {hotkeys}")
 
-# Глобальные переменные
+# Global variables
 devices = []
 current_device_index = 0
 running = False

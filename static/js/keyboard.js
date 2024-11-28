@@ -23,11 +23,11 @@ class VirtualKeyboard {
         this.currentInput = inputElement;
         this.clearSelection();
         
-        // Загружаем существующие клавиши
+        // Load existing keys
         const keyboard = this.currentInput.getAttribute('data-keyboard');
         const mouse = this.currentInput.getAttribute('data-mouse');
         
-        if (keyboard && keyboard !== "Нет") {
+        if (keyboard && keyboard !== "None") {
             keyboard.split('+').forEach(key => {
                 const keyElement = this.findKeyElement(key.trim());
                 if (keyElement) {
@@ -37,7 +37,7 @@ class VirtualKeyboard {
             });
         }
         
-        if (mouse && mouse !== "Нет") {
+        if (mouse && mouse !== "None") {
             mouse.split('+').forEach(key => {
                 const keyElement = this.findKeyElement(key.trim());
                 if (keyElement) {
@@ -60,7 +60,7 @@ class VirtualKeyboard {
         const mouseKeys = new Set([
             'scrollup', 'scrolldown', 
             'mouseleft', 'mouseright', 'mousemiddle',
-            'лкм', 'пкм', 'скм'
+            'lmb', 'rmb', 'mmb'
         ]);
         return mouseKeys.has(keyName.toLowerCase());
     }
@@ -78,11 +78,6 @@ class VirtualKeyboard {
             keyElement.classList.add('active');
             this.selectedKeys[keySet].add(normalizedKey);
         }
-        
-        console.log('Current keys:', {
-            keyboard: Array.from(this.selectedKeys.keyboard),
-            mouse: Array.from(this.selectedKeys.mouse)
-        });
     }
 
     findKeyElement(keyName) {
@@ -106,13 +101,9 @@ class VirtualKeyboard {
             'command': 'win',
             'return': 'enter',
             'escape': 'esc',
-            'лкм': 'mouseleft',
-            'пкм': 'mouseright',
-            'скм': 'mousemiddle',
-            'arrowup': 'up',
-            'arrowdown': 'down',
-            'arrowleft': 'left',
-            'arrowright': 'right'
+            'lmb': 'mouseleft',
+            'rmb': 'mouseright',
+            'mmb': 'mousemiddle'
         };
 
         const normalized = keyName.toLowerCase();
@@ -131,24 +122,19 @@ class VirtualKeyboard {
         if (this.currentInput) {
             const action = this.currentInput.getAttribute('data-action');
             
-            // Формируем строки клавиш
+            // Form key strings
             const keyboardKeys = Array.from(this.selectedKeys.keyboard);
             const mouseKeys = Array.from(this.selectedKeys.mouse);
             
-            console.log('Saving keys:', {
-                keyboard: keyboardKeys,
-                mouse: mouseKeys
-            });
+            // Update attributes and input value
+            this.currentInput.setAttribute('data-keyboard', keyboardKeys.join('+') || "None");
+            this.currentInput.setAttribute('data-mouse', mouseKeys.join('+') || "None");
             
-            // Обновляем атрибуты и значение в поле ввода
-            this.currentInput.setAttribute('data-keyboard', keyboardKeys.join('+') || "Нет");
-            this.currentInput.setAttribute('data-mouse', mouseKeys.join('+') || "Нет");
-            
-            // Обновляем отображаемое значение
+            // Update displayed value
             const allKeys = [...keyboardKeys, ...mouseKeys];
-            this.currentInput.value = allKeys.length > 0 ? allKeys.join('+') : "Нет";
+            this.currentInput.value = allKeys.length > 0 ? allKeys.join('+') : "None";
 
-            // Отправляем разделенные данные на сервер
+            // Send separated data to server
             fetch('/update_hotkey', {
                 method: 'POST',
                 headers: {
@@ -156,8 +142,8 @@ class VirtualKeyboard {
                 },
                 body: JSON.stringify({
                     action: action,
-                    keyboard: keyboardKeys.join('+') || "Нет",
-                    mouse: mouseKeys.join('+') || "Нет"
+                    keyboard: keyboardKeys.join('+') || "None",
+                    mouse: mouseKeys.join('+') || "None"
                 })
             });
         }
@@ -165,7 +151,7 @@ class VirtualKeyboard {
     }
 }
 
-// Инициализация клавиатуры при загрузке страницы
+// Initialize keyboard when page loads
 document.addEventListener('DOMContentLoaded', () => {
     const keyboard = new VirtualKeyboard();
 

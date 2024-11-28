@@ -6,63 +6,80 @@
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0,0,0,0.5);
+    background-color: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
 }
 
 .modal-content {
-    background-color: #2d2d2d;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
     margin: 2% auto;
-    padding: 20px;
-    border-radius: 10px;
-    width: 95%;
-    max-width: 1400px;
+    padding: 25px;
+    border-radius: 20px;
+    width: 98%;
+    max-width: 1600px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .input-devices {
     display: flex;
-    gap: 20px;
-    margin-bottom: 20px;
+    gap: 35px;
+    margin-bottom: 25px;
+    padding: 0 20px;
+}
+
+.keyboard-container, .mouse-container {
+    background-color: rgba(26, 26, 26, 0.7);
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .keyboard-container {
-    background-color: #1a1a1a;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     flex: 1;
 }
 
 .mouse-container {
-    background-color: #1a1a1a;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     width: 260px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
 }
 
 h3 {
     color: #fff;
     margin-top: 0;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
     text-align: center;
-    font-size: 18px;
+    font-size: 1.4em;
+    font-weight: 500;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    position: relative;
+}
+
+h3::after {
+    content: '';
+    display: block;
+    width: 60px;
+    height: 2px;
+    background: linear-gradient(90deg, #007bff, #00c3ff);
+    margin: 10px auto 0;
+    border-radius: 2px;
 }
 
 .keyboard-row {
     display: flex;
     justify-content: center;
     margin-bottom: 8px;
-    gap: 4px;
+    gap: 6px;
 }
 
-.key, .wheel-up, .wheel-down, .mouse-button {
-    background-color: #333;
+.key {
+    background: linear-gradient(180deg, #3a3a3a 0%, #333333 100%);
     color: #fff;
-    border: 1px solid #444;
-    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 10px;
+    min-width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -71,102 +88,52 @@ h3 {
     font-size: 14px;
     transition: all 0.2s ease;
     text-align: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.key:hover, .wheel-up:hover, .wheel-down:hover, .mouse-button:hover {
-    background-color: #444;
+.key:hover {
+    background: linear-gradient(180deg, #444444 0%, #3a3a3a 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-.key.active, .wheel-up.active, .wheel-down.active, .mouse-button.active {
-    background-color: #007bff;
+.key.active {
+    background: linear-gradient(180deg, #007bff 0%, #0056b3 100%);
     border-color: #0056b3;
-    box-shadow: 0 0 8px rgba(0,123,255,0.5);
-}
-
-.key {
-    padding: 10px;
-    min-width: 40px;
-    height: 40px;
-}
-
-.mouse-button {
-    width: 50px;
-    height: 45px;
-}
-
-.wheel-up, .wheel-down {
-    width: 32px;
-    height: 24px;
-}
-
-.key.function-key {
-    background-color: #2d2d2d;
-    font-size: 12px;
-    min-width: 50px;
-}
-
-.key.backspace {
-    width: 100px;
-}
-
-.key.tab {
-    width: 70px;
-}
-
-.key.caps {
-    width: 80px;
-}
-
-.key.enter {
-    width: 90px;
-}
-
-.key.shift {
-    width: 100px;
-}
-
-.key.ctrl, .key.alt, .key.win {
-    width: 60px;
-}
-
-.key.space {
-    width: 400px;
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.4);
+    transform: translateY(1px);
 }
 
 .mouse-body {
-    background-color: #2a2a2a;
+    background: linear-gradient(180deg, #2a2a2a 0%, #222222 100%);
     border-radius: 25px;
-    padding: 20px;
-    margin: 10px auto;
+    padding: 25px;
+    margin: 15px auto;
     width: 190px;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
-    border: 1px solid #333;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3), 0 4px 8px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .mouse-buttons {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 10px;
-    width: 100%;
+    gap: 12px;
 }
 
 .mouse-wheel {
+    background: linear-gradient(180deg, #333333 0%, #2a2a2a 100%);
+    padding: 8px;
+    border-radius: 12px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 6px;
-    background-color: #333;
-    padding: 6px;
-    border-radius: 10px;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
 }
 
 .wheel-up, .wheel-down {
-    background-color: #444;
+    background: linear-gradient(180deg, #3a3a3a 0%, #333333 100%);
     width: 32px;
     height: 24px;
     border-radius: 6px;
@@ -177,59 +144,97 @@ h3 {
     color: #fff;
     cursor: pointer;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.wheel-up:hover, .wheel-down:hover {
-    background-color: #555;
+.mouse-button {
+    background: linear-gradient(180deg, #3a3a3a 0%, #333333 100%);
+    width: 50px;
+    height: 45px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.wheel-up.active, .wheel-down.active {
-    background-color: #007bff;
-    box-shadow: 0 0 8px rgba(0,123,255,0.5);
+.wheel-up:hover, .wheel-down:hover, .mouse-button:hover {
+    background: linear-gradient(180deg, #444444 0%, #3a3a3a 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.wheel-up.active, .wheel-down.active, .mouse-button.active {
+    background: linear-gradient(180deg, #007bff 0%, #0056b3 100%);
+    border-color: #0056b3;
+    box-shadow: 0 0 15px rgba(0, 123, 255, 0.4);
+    transform: translateY(1px);
 }
 
 .control-buttons {
-    margin-top: 20px;
+    margin-top: 25px;
     display: flex;
     justify-content: center;
-    gap: 10px;
+    gap: 15px;
 }
 
 .btn {
-    padding: 8px 16px;
+    padding: 12px 24px;
     border: none;
-    border-radius: 4px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 14px;
-    transition: all 0.2s ease;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .btn-primary {
-    background-color: #007bff;
+    background: linear-gradient(90deg, #007bff, #00c3ff);
     color: #fff;
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
 }
 
 .btn-primary:hover {
-    background-color: #0056b3;
+    background: linear-gradient(90deg, #0056b3, #0099ff);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
 }
 
 .btn-secondary {
-    background-color: #6c757d;
+    background: linear-gradient(90deg, #6c757d, #5a6268);
     color: #fff;
+    box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
 }
 
 .btn-secondary:hover {
-    background-color: #545b62;
+    background: linear-gradient(90deg, #5a6268, #4e555b);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
 }
 
 .btn-danger {
-    background-color: #dc3545;
+    background: linear-gradient(90deg, #dc3545, #c82333);
     color: #fff;
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
 }
 
 .btn-danger:hover {
-    background-color: #c82333;
+    background: linear-gradient(90deg, #c82333, #bd2130);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
+}
+
+.btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 @media (max-width: 1200px) {
@@ -255,4 +260,38 @@ h3 {
         min-width: 40px;
         font-size: 10px;
     }
+}
+
+.key.backspace {
+    width: 100px;
+}
+
+.key.tab {
+    width: 70px;
+}
+
+.key.caps {
+    width: 80px;
+}
+
+.key.enter {
+    width: 120px;
+}
+
+.key.shift {
+    width: 130px;
+}
+
+.key.ctrl, .key.alt, .key.win {
+    width: 60px;
+}
+
+.key.space {
+    width: 450px;
+}
+
+.key.function-key {
+    background: linear-gradient(180deg, #3a3a3a 0%, #333333 100%);
+    font-size: 12px;
+    min-width: 50px;
 } 

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Настройка горячих клавиш</title>
+    <title>Hotkey Settings</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/keyboard.css') }}">
     <style>
         body {
@@ -156,26 +156,26 @@
 </head>
 <body>
     <div class="container">
-        <h1>Настройка горячих клавиш</h1>
+        <h1>Hotkey Settings</h1>
         
         <form id="hotkeyForm">
             {% for action, combo in hotkeys.items() %}
             <div class="hotkey-group">
                 <label class="hotkey-label">
                     {% if action == "volume_up" %}
-                    Увеличить громкость
+                    Volume Up
                     {% elif action == "volume_down" %}
-                    Уменьшить громкость
+                    Volume Down
                     {% elif action == "prev_device" %}
-                    Предыдущее устройство
+                    Previous Device
                     {% elif action == "next_device" %}
-                    Следующее устройство
+                    Next Device
                     {% elif action == "media_play_pause" %}
-                    Воспроизведение/Пауза
+                    Play/Pause
                     {% elif action == "media_next" %}
-                    Следующий трек
+                    Next Track
                     {% elif action == "media_previous" %}
-                    Предыдущий трек
+                    Previous Track
                     {% endif %}
                 </label>
                 <input type="text" 
@@ -183,16 +183,16 @@
                        data-action="{{ action }}" 
                        data-keyboard="{{ combo.keyboard }}"
                        data-mouse="{{ combo.mouse }}"
-                       value="{{ combo.keyboard if combo.keyboard != 'Нет' }}{{ '+' if combo.keyboard != 'Нет' and combo.mouse != 'Нет' }}{{ combo.mouse if combo.mouse != 'Нет' }}"
+                       value="{{ combo.keyboard if combo.keyboard != 'None' }}{{ '+' if combo.keyboard != 'None' and combo.mouse != 'None' }}{{ combo.mouse if combo.mouse != 'None' }}"
                        readonly>
             </div>
             {% endfor %}
             
-            <button type="submit" class="save-button">Сохранить настройки</button>
+            <button type="submit" class="save-button">Save Settings</button>
         </form>
     </div>
 
-    <div id="notification" class="notification">Настройки успешно сохранены</div>
+    <div id="notification" class="notification">Settings saved successfully</div>
 
     {% include 'keyboard_modal.html' %}
     
@@ -221,8 +221,8 @@
             document.querySelectorAll('.hotkey-input').forEach(input => {
                 const action = input.getAttribute('data-action');
                 hotkeys[action] = {
-                    keyboard: input.getAttribute('data-keyboard') || "Нет",
-                    mouse: input.getAttribute('data-mouse') || "Нет"
+                    keyboard: input.getAttribute('data-keyboard') || "None",
+                    mouse: input.getAttribute('data-mouse') || "None"
                 };
             });
 
@@ -237,12 +237,12 @@
 
                 const result = await response.json();
                 if (result.status === 'success') {
-                    showNotification('Настройки успешно сохранены');
+                    showNotification('Settings saved successfully');
                 } else {
-                    showNotification('Ошибка при сохранении настроек: ' + result.message, true);
+                    showNotification('Error saving settings: ' + result.message, true);
                 }
             } catch (error) {
-                showNotification('Ошибка при сохранении настроек: ' + error, true);
+                showNotification('Error saving settings: ' + error, true);
             }
         });
     </script>

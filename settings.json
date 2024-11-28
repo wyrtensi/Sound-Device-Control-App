@@ -1,7 +1,7 @@
 {
     "volume_up": {
         "keyboard": "win",
-        "mouse": "scrolldown"
+        "mouse": "scrollup"
     },
     "volume_down": {
         "keyboard": "win",
@@ -9,22 +9,22 @@
     },
     "prev_device": {
         "keyboard": "win+pagedown",
-        "mouse": "Нет"
+        "mouse": "None"
     },
     "next_device": {
         "keyboard": "win+pageup",
-        "mouse": "Нет"
+        "mouse": "None"
     },
     "media_play_pause": {
         "keyboard": "win+ctrl+down",
-        "mouse": "Нет"
+        "mouse": "None"
     },
     "media_next": {
         "keyboard": "win+ctrl+right",
-        "mouse": "Нет"
+        "mouse": "None"
     },
     "media_previous": {
         "keyboard": "win+ctrl+left",
-        "mouse": "Нет"
+        "mouse": "None"
     }
 }
