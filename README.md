@@ -1,7 +1,12 @@
 Sound Device Control App
 ![image](https://github.com/user-attachments/assets/02de48b0-698b-416b-8cc5-6d1eea045e8e)
+App features:
 
-Control volume adjustment, media button controls, and playback device switching using keyboard or mouse hotkeys. It utilizes Python notifications and HTML/JS for configuration (interface) and is accessible from the system tray. This program is designed exclusively for Windows and uses Python + PowerShell + HTML + JS + CSS. Tested on python 3.12.
+1. Swith your input device (microphone) by hotkey.
+2. Swich your output device (headphones) by hotkey.
+3. Adjust volume by hotkey.
+4. Hotkeys for play/plause, next/pervious song.
+5. Intuitive interface for hotkeys assignment. 
 
 It filters microphones by the name "microphone" to exclude them from the device list. Simply rename your microphones to "microphone" to achieve this.
 ![image](https://github.com/user-attachments/assets/2a08f2ed-6898-49d4-8a4f-29a0213d7091)
