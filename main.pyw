@@ -353,6 +353,7 @@ def send_media_message(app_command):
     ctypes.windll.user32.SendMessageW(hwnd, WM_APPCOMMAND, 0, app_command * 0x10000)
 
 def get_audio_devices():
+    """Получает список устройств вывода звука"""
     powershell_path = r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
     
     ps_script = """
@@ -362,10 +363,10 @@ def get_audio_devices():
     }
     
     try {
-        $devices = Get-AudioDevice -List
+        $devices = Get-AudioDevice -List | Where-Object { $_.Type -eq 'Playback' }
         $devices | ForEach-Object { "$($_.Index),$($_.Name)" }
     } catch {
-        Write-Host "Error getting device list"
+        Write-Host "Error getting output device list"
     }
     """
     
@@ -394,11 +395,11 @@ def get_audio_devices():
             )
         
         devices = result.stdout.strip().split('\n')
-        devices = [device.split(',') for device in devices if device.strip() and "microphone" not in device.lower()]
+        devices = [device.split(',') for device in devices if device.strip()]
         return devices
         
     except Exception as e:
-        print(f"Error getting audio devices: {e}")
+        print(f"Error getting output devices: {e}")
         return []
 
 def set_default_audio_device(device_index):
