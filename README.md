@@ -2,8 +2,8 @@ Sound Device Control App
 ![image](https://github.com/user-attachments/assets/02de48b0-698b-416b-8cc5-6d1eea045e8e)
 App features:
 
-1. Swith your input device (microphone) by hotkey.
-2. Swich your output device (headphones) by hotkey.
+1. Switch your input device (microphone) by hotkey.
+2. Switch your output device (headphones) by hotkey.
 3. Adjust volume by hotkey.
 4. Hotkeys for play/plause, next/pervious song.
 5. Intuitive interface for hotkeys assignment. 
