@@ -488,28 +488,9 @@ def set_default_audio_device(device_index):
     except Exception as e:
         print(f"Error executing PowerShell: {e}")
 
-def create_notification_window():
-    """Создает и настраивает окно уведомления"""
-    root = tk.Tk()
-    root.overrideredirect(True)
-    root.attributes('-alpha', 0.0)  # Начинаем с прозрачного окна
-    
-    # Настройка размеров и позиции
-    screen_width = root.winfo_screenwidth()
-    screen_height = root.winfo_screenheight()
-    window_width = 300
-    window_height = 80
-    x_position = screen_width - window_width - 20
-    y_position = screen_height - window_height - 40
-    
-    root.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
-    root.attributes("-topmost", True)
-    
-    # Создаем скругленную рамку
-    frame = tk.Frame(root, bg='#2C2C2C', highlightthickness=0)
-    frame.place(relwidth=1, relheight=1)
-    
-    return root, frame
+notification_queue = []
+notification_root = None
+current_notification = None
 
 def create_round_rectangle(width, height, radius, fill):
     """Создает изображение со скругленными углами"""
@@ -519,14 +500,61 @@ def create_round_rectangle(width, height, radius, fill):
     draw.rounded_rectangle([(0, 0), (width-1, height-1)], radius, fill=fill)
     return image
 
+def create_notification_window():
+    """Создает основное окно для уведомлений"""
+    global notification_root
+    notification_root = tk.Tk()
+    notification_root.withdraw()  # Скрываем основное окно
+    
+    def check_queue():
+        if notification_queue:
+            message = notification_queue.pop(0)
+            show_notification_message(message)
+        notification_root.after(100, check_queue)
+    
+    check_queue()
+    notification_root.mainloop()
+
 def show_notification(message):
-    """Показывает стильное уведомление"""
+    """Добавляет сообщение в очередь уведомлений"""
+    notification_queue.append(message)
+
+def show_notification_message(message):
+    """Показывает уведомление"""
+    global current_notification
+    
     try:
-        root, frame = create_notification_window()
+        # Создаем новое окно только если нет активного или оно уже не существует
+        if not current_notification or not current_notification.winfo_exists():
+            root = tk.Toplevel(notification_root)
+            current_notification = root
+        else:
+            root = current_notification
+            # Очищаем предыдущее содержимое
+            for widget in root.winfo_children():
+                widget.destroy()
+        
+        root.overrideredirect(True)
+        root.attributes('-alpha', 0.0)
+        root.attributes("-topmost", True)
+        
+        # Настройка размеров и позиции
+        screen_width = root.winfo_screenwidth()
+        screen_height = root.winfo_screenheight()
+        window_width = 300
+        window_height = 80
+        x_position = screen_width - window_width - 20
+        y_position = screen_height - window_height - 40
+        
+        root.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
+        
+        # Создаем скругленную рамку
+        frame = tk.Frame(root, bg='#2C2C2C', highlightthickness=0)
+        frame.place(relwidth=1, relheight=1)
         
         # Создаем фон со скругленными углами
         bg_image = create_round_rectangle(300, 80, 15, '#2C2C2C')
-        bg_photo = ImageTk.PhotoImage(bg_image)
+        bg_photo = ImageTk.PhotoImage(bg_image, master=root)
         
         # Создаем и размещаем фоновую метку
         bg_label = tk.Label(frame, image=bg_photo, bg='#2C2C2C')
@@ -549,7 +577,7 @@ def show_notification(message):
             x = 18 + i * 4
             draw.arc([x, 6, x+6, 18], -60, 60, fill=speaker_color, width=2)
         
-        icon_photo = ImageTk.PhotoImage(icon_image)
+        icon_photo = ImageTk.PhotoImage(icon_image, master=root)
         icon_label = tk.Label(frame, image=icon_photo, bg='#2C2C2C')
         icon_label.image = icon_photo
         icon_label.place(x=15, y=28)
@@ -564,7 +592,6 @@ def show_notification(message):
                         justify=tk.LEFT)
         label.place(x=50, y=30)
         
-        # Анимация появления
         def fade_in():
             alpha = root.attributes('-alpha')
             if alpha < 1.0:
@@ -574,6 +601,9 @@ def show_notification(message):
                 root.after(2000, fade_out)
                 
         def fade_out():
+            if not root.winfo_exists():
+                return
+                
             alpha = root.attributes('-alpha')
             if alpha > 0:
                 root.attributes('-alpha', alpha - 0.1)
@@ -582,10 +612,15 @@ def show_notification(message):
                 root.destroy()
         
         fade_in()
-        root.mainloop()
         
     except Exception as e:
         print(f"Error showing notification: {e}")
+
+def run_notification_window():
+    """Запускает главный цикл Tkinter для уведомлений"""
+    root = tk.Tk()
+    root.withdraw()  # Скрываем основное окно
+    root.mainloop()
 
 def switch_audio_device(direction):
     global current_device_index, devices
@@ -791,6 +826,10 @@ def main():
     tray_thread.start()
     print("Tray icon started")
 
+    # Запускаем поток для уведомлений
+    notification_thread = Thread(target=create_notification_window, daemon=True)
+    notification_thread.start()
+    
     try:
         while running:
             time.sleep(1)
