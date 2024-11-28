@@ -12,6 +12,11 @@ Additionally, you will need the PowerShell module AudioDeviceCmdlets, which the 
 
 Install-Module -Name AudioDeviceCmdlets -Force -Scope CurrentUser
 
+![image](https://github.com/user-attachments/assets/7d6026bb-1d22-40d5-9db5-7e667c55b879)
+
+![image](https://github.com/user-attachments/assets/c99c136a-624b-4504-b2a9-8f88d0f5464b)
+
+![image](https://github.com/user-attachments/assets/f228e526-6a54-436f-be4c-838697a33d8e)
 
 
 
