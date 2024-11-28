@@ -19,8 +19,9 @@ import mouse
 import tkinter as tk
 from tkinter import font
 import pystray
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageTk
 import webbrowser
+import math
 
 # Windows constants
 WM_APPCOMMAND = 0x319
@@ -487,22 +488,104 @@ def set_default_audio_device(device_index):
     except Exception as e:
         print(f"Error executing PowerShell: {e}")
 
-def show_notification(device_name):
+def create_notification_window():
+    """Создает и настраивает окно уведомления"""
     root = tk.Tk()
     root.overrideredirect(True)
+    root.attributes('-alpha', 0.0)  # Начинаем с прозрачного окна
+    
+    # Настройка размеров и позиции
     screen_width = root.winfo_screenwidth()
     screen_height = root.winfo_screenheight()
-    window_width = 350
-    window_height = 60
-    x_position = screen_width - window_width - 10
-    y_position = screen_height - window_height - 80
+    window_width = 300
+    window_height = 80
+    x_position = screen_width - window_width - 20
+    y_position = screen_height - window_height - 40
+    
     root.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
-    root.attributes("-topmost", 1)
-    root.configure(bg="#333333")
-    label = tk.Label(root, text=device_name, font=("Arial", 12, "bold"), fg="white", bg="#333333")
-    label.pack(expand=True)
-    root.after(1000, root.destroy)
-    root.mainloop()
+    root.attributes("-topmost", True)
+    
+    # Создаем скругленную рамку
+    frame = tk.Frame(root, bg='#2C2C2C', highlightthickness=0)
+    frame.place(relwidth=1, relheight=1)
+    
+    return root, frame
+
+def create_round_rectangle(width, height, radius, fill):
+    """Создает изображение со скругленными углами"""
+    image = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(image)
+    
+    draw.rounded_rectangle([(0, 0), (width-1, height-1)], radius, fill=fill)
+    return image
+
+def show_notification(message):
+    """Показывает стильное уведомление"""
+    try:
+        root, frame = create_notification_window()
+        
+        # Создаем фон со скругленными углами
+        bg_image = create_round_rectangle(300, 80, 15, '#2C2C2C')
+        bg_photo = ImageTk.PhotoImage(bg_image)
+        
+        # Создаем и размещаем фоновую метку
+        bg_label = tk.Label(frame, image=bg_photo, bg='#2C2C2C')
+        bg_label.image = bg_photo
+        bg_label.place(relwidth=1, relheight=1)
+        
+        # Иконка звука
+        icon_size = 24
+        icon_image = Image.new('RGBA', (icon_size, icon_size), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(icon_image)
+        
+        # Рисуем иконку звука
+        speaker_color = '#4A9EFF'
+        draw.rectangle([4, 8, 10, 16], fill=speaker_color)
+        points = [(10, 8), (16, 4), (16, 20), (10, 16)]
+        draw.polygon(points, fill=speaker_color)
+        
+        # Звуковые волны
+        for i in range(2):
+            x = 18 + i * 4
+            draw.arc([x, 6, x+6, 18], -60, 60, fill=speaker_color, width=2)
+        
+        icon_photo = ImageTk.PhotoImage(icon_image)
+        icon_label = tk.Label(frame, image=icon_photo, bg='#2C2C2C')
+        icon_label.image = icon_photo
+        icon_label.place(x=15, y=28)
+        
+        # Текст уведомления
+        custom_font = font.Font(family="Segoe UI", size=10, weight="normal")
+        label = tk.Label(frame, 
+                        text=message,
+                        font=custom_font,
+                        fg='#FFFFFF',
+                        bg='#2C2C2C',
+                        justify=tk.LEFT)
+        label.place(x=50, y=30)
+        
+        # Анимация появления
+        def fade_in():
+            alpha = root.attributes('-alpha')
+            if alpha < 1.0:
+                root.attributes('-alpha', alpha + 0.1)
+                root.after(20, fade_in)
+            else:
+                root.after(2000, fade_out)
+                
+        def fade_out():
+            alpha = root.attributes('-alpha')
+            if alpha > 0:
+                root.attributes('-alpha', alpha - 0.1)
+                root.after(20, fade_out)
+            else:
+                root.destroy()
+        
+        fade_in()
+        root.mainloop()
+        
+    except Exception as e:
+        print(f"Error showing notification: {e}")
 
 def switch_audio_device(direction):
     global current_device_index, devices
@@ -580,7 +663,7 @@ def index():
     return render_template("index.html", hotkeys=hotkeys)
 
 def save_settings(settings):
-    """Сохра��яет настройки в файл"""
+    """Сохраяет настройки в файл"""
     try:
         # Проверяем валидность JSON перед сохранением
         json.dumps(settings)
