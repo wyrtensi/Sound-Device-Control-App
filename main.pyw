@@ -502,8 +502,9 @@ def exit_app(icon, item):
     running = False
 
 def setup_tray():
+    """Sets up the tray icon"""
     icon = pystray.Icon(
-        "Audio Device Switcher",
+        "Sound Device Control App",
         icon=create_icon(),
         menu=pystray.Menu(
             pystray.MenuItem("Settings", open_settings, default=True),
