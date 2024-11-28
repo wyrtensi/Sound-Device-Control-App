@@ -736,20 +736,43 @@ def switch_audio_device(direction):
         print(f"Error switching device: {e}")
 
 def create_icon():
-    """Creates pink-black-turquoise icon"""
+    """Creates a modern audio control icon"""
     width = 128
     height = 128
     image = Image.new('RGBA', (width, height), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
+
+    # Background circle with gradient effect
+    for i in range(40):
+        alpha = int(255 * (1 - i/40))
+        color = (0, 123, 255, alpha)  # Blue glow
+        draw.ellipse([i, i, width-i, height-i], fill=color)
+
+    # Speaker body
+    speaker_color = (255, 255, 255, 255)
+    # Main square
+    draw.rectangle([35, 44, 55, 84], fill=speaker_color)
     
-    # Pink circle (Deep Pink)
-    draw.ellipse([10, 10, width-40, height-40], fill=(255, 20, 147, 255))
-    # Black circle
-    draw.ellipse([30, 30, width-20, height-20], fill=(0, 0, 0, 255))
-    # Turquoise circle
-    draw.ellipse([50, 50, width, height], fill=(64, 224, 208, 255))
-    
-    image = image.resize((32, 32), Image.Resampling.LANCZOS)
+    # Speaker cone triangles
+    points_left = [(55, 44), (85, 24), (85, 104), (55, 84)]
+    draw.polygon(points_left, fill=speaker_color)
+
+    # Sound waves
+    wave_color = (255, 255, 255, 200)
+    # First wave
+    draw.arc([70, 34, 100, 94], 300, 60, fill=wave_color, width=4)
+    # Second wave
+    draw.arc([85, 24, 115, 104], 300, 60, fill=wave_color, width=4)
+
+    # Optional equalizer bars for style
+    bar_colors = [(0, 255, 255, 200), (0, 255, 200, 200), (0, 200, 255, 200)]
+    bar_width = 4
+    for i, color in enumerate(bar_colors):
+        height = 20 + i * 10
+        x = 95 + i * 8
+        y = 64 - height//2
+        draw.rectangle([x, y, x+bar_width, y+height], fill=color)
+
     return image
 
 def open_settings(icon, item):
