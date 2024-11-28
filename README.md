@@ -1,15 +1,17 @@
 Playback Device Switch Sound Volume
 
-Управление регулировкой громкости, управление музыкой и переключение устройств воспроизведения горячими клавишами клавиатуры или мыши. Использует уведомления python. html, js для настройки (интерфейс), доступна в трее. Только для Windows. Использует python+powershell+html+js.
+Control volume adjustment, music playback, and playback device switching using keyboard or mouse hotkeys. It utilizes Python notifications and HTML/JS for configuration (interface) and is accessible from the system tray. This program is designed exclusively for Windows and uses Python + PowerShell + HTML + JS.
 
-Фильтрует микрофоны по имени "microphone" чтобы исключить их из списка устройств. Просто переименуйте свои микрофоны в "microphone".
+It filters microphones by the name "microphone" to exclude them from the device list. Simply rename your microphones to "microphone" to achieve this.
 
-
-Вот список необходимых пакетов для работы этой программы. Вы можете установить их с помощью cmd:
+Here is the list of required packages for this program. You can install them using CMD:
 
 pip install flask pynput pycaw pywin32 mouse pystray pillow comtypes keyboard six
-
-Также вам потребуется PowerShell модуль AudioDeviceCmdlets, который программа попытается установить автоматически при первом запуске. Если этого не произойдет, вы можете установить его вручную через PowerShell с правами администратора:
+Additionally, you will need the PowerShell module AudioDeviceCmdlets, which the program will attempt to install automatically during the first run. If this does not happen, you can manually install it via PowerShell with administrator privileges:
 
 Install-Module -Name AudioDeviceCmdlets -Force -Scope CurrentUser
+
+
+
+
 
