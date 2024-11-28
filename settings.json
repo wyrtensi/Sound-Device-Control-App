@@ -12,8 +12,8 @@
         "mouse": "None"
     },
     "next_device": {
-        "keyboard": "win+pageup",
-        "mouse": "None"
+        "keyboard": "None",
+        "mouse": "mouseright"
     },
     "media_play_pause": {
         "keyboard": "win+ctrl+down",
