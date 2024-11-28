@@ -9,7 +9,8 @@ App features:
 3. Adjust volume by hotkey.
 4. Hotkeys for play/plause, next/pervious song.
 5. Turn ON and OFF your microphone by pressing a hotkey. (Switching it by adjusting microphone volume from 0 to 100)
-6. Intuitive interface for hotkeys assignment. 
+6. Notifications for switching device, turning off microphone.
+7. Intuitive interface for hotkeys assignment. 
 
 ![image](https://github.com/user-attachments/assets/02de48b0-698b-416b-8cc5-6d1eea045e8e)
 
