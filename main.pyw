@@ -50,6 +50,14 @@ default_hotkeys = {
         "keyboard": "win+pagedown",
         "mouse": "None"
     },
+    "prev_input_device": {
+        "keyboard": "win+home",
+        "mouse": "None"
+    },
+    "next_input_device": {
+        "keyboard": "win+end",
+        "mouse": "None"
+    },
     "media_play_pause": {
         "keyboard": "ctrl+space",
         "mouse": "None"
@@ -260,11 +268,9 @@ def handle_hotkeys(tracker):
             current_time = time.time()
             
             for action, combo in hotkeys.items():
-                # Пропускаем если прошло мало времени с последнего действия
                 if current_time - last_action_time.get(action, 0) < 0.1:
                     continue
                 
-                # Пропускаем если обе комбинации None
                 if combo['keyboard'].lower() == 'none' and combo['mouse'].lower() == 'none':
                     continue
                     
@@ -277,6 +283,10 @@ def handle_hotkeys(tracker):
                         switch_audio_device('prev')
                     elif action == 'next_device':
                         switch_audio_device('next')
+                    elif action == 'prev_input_device':
+                        switch_input_device('prev')
+                    elif action == 'next_input_device':
+                        switch_input_device('next')
                     elif action == 'media_play_pause':
                         send_media_message(APPCOMMAND_MEDIA_PLAY_PAUSE)
                     elif action == 'media_next':
@@ -505,6 +515,46 @@ def setup_tray():
 def index():
     return render_template("index.html", hotkeys=hotkeys)
 
+def save_settings(settings):
+    """Сохраняет настройки в файл"""
+    try:
+        # Проверяем валидность JSON перед сохранением
+        json.dumps(settings)
+        
+        with open('settings.json', 'w', encoding='utf-8') as f:
+            json.dump(settings, f, ensure_ascii=False, indent=4)
+        return True
+    except Exception as e:
+        print(f"Error saving settings: {e}")
+        return False
+
+def update_settings_structure(settings):
+    """Обновляет структуру настроек, добавляя недостающие действия"""
+    updated = False
+    for action, combo in default_hotkeys.items():
+        if action not in settings:
+            settings[action] = combo.copy()
+            updated = True
+    return settings, updated
+
+# Загрузка настроек при запуске
+try:
+    with open('settings.json', 'r', encoding='utf-8') as f:
+        hotkeys = json.load(f)
+    # Обновляем структуру если нужно
+    hotkeys, was_updated = update_settings_structure(hotkeys)
+    if was_updated:
+        save_settings(hotkeys)
+    print(f"Loaded hotkeys: {hotkeys}")
+except FileNotFoundError:
+    hotkeys = default_hotkeys.copy()
+    save_settings(hotkeys)
+    print(f"Using default hotkeys: {hotkeys}")
+except json.JSONDecodeError:
+    print("Error reading settings.json, using default hotkeys")
+    hotkeys = default_hotkeys.copy()
+    save_settings(hotkeys)
+
 @app.route("/update_hotkey", methods=["POST"])
 def update_hotkey():
     try:
@@ -527,9 +577,11 @@ def update_hotkey():
         except FileNotFoundError:
             current_hotkeys = default_hotkeys.copy()
         except json.JSONDecodeError:
-            print("Error reading settings.json, using default hotkeys")
             current_hotkeys = default_hotkeys.copy()
 
+        # Обновляем структуру если нужно
+        current_hotkeys, _ = update_settings_structure(current_hotkeys)
+        
         current_hotkeys[action] = {
             "keyboard": keyboard_keys,
             "mouse": mouse_keys
@@ -548,30 +600,26 @@ def update_hotkey():
         print(traceback.format_exc())
         return jsonify({"status": "error", "message": str(e)})
 
-def save_settings(settings):
-    try:
-        # Проверяем валидность JSON перед сохранением
-        json.dumps(settings)
-        
-        with open('settings.json', 'w', encoding='utf-8') as f:
-            json.dump(settings, f, ensure_ascii=False, indent=4)
-        return True
-    except Exception as e:
-        print(f"Error saving settings: {e}")
-        return False
-
 def run_flask():
     app.run(host='127.0.0.1', port=5000, debug=False)
 
 def main():
-    global running, devices, current_device_index
+    global running, devices, input_devices, current_device_index, current_input_device_index
     running = True
     
+    # Получаем списки устройств
     devices = get_audio_devices()
+    input_devices = get_input_devices()
+    
     if not devices:
-        print("No audio devices found!")
+        print("No audio output devices found!")
     else:
-        print(f"Found {len(devices)} audio devices")
+        print(f"Found {len(devices)} audio output devices")
+        
+    if not input_devices:
+        print("No audio input devices found!")
+    else:
+        print(f"Found {len(input_devices)} audio input devices")
     
     flask_thread = Thread(target=run_flask, daemon=True)
     flask_thread.start()
@@ -615,8 +663,8 @@ def save_settings_endpoint():
                     "message": f"Invalid data format for action {action}"
                 })
 
-        # Проверяем валидность JSON
-        json.dumps(data)
+        # Обновляем структуру если нужно
+        data, _ = update_settings_structure(data)
 
         # Сохраняем настройки
         if save_settings(data):
@@ -629,17 +677,98 @@ def save_settings_endpoint():
         print(f"Error in save_settings_endpoint: {e}")
         return jsonify({"status": "error", "message": str(e)})
 
-try:
-    with open('settings.json', 'r', encoding='utf-8') as f:
-        hotkeys = json.load(f)
-    print(f"Loaded hotkeys: {hotkeys}")
-except FileNotFoundError:
-    hotkeys = default_hotkeys
-    print(f"Using default hotkeys: {hotkeys}")
-
 devices = []
 current_device_index = 0
 running = False
+
+# Добавляем глобальные переменные для устройств ввода
+input_devices = []
+current_input_device_index = 0
+
+def get_input_devices():
+    """Получает список устройств ввода (микрофонов)"""
+    powershell_path = r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
+    
+    ps_script = """
+    if (-not (Get-Module -ListAvailable -Name AudioDeviceCmdlets)) {
+        Write-Host "ERROR: AudioDeviceCmdlets not installed"
+        exit 1
+    }
+    
+    try {
+        $devices = Get-AudioDevice -List | Where-Object { $_.Type -eq 'Recording' }
+        $devices | ForEach-Object { "$($_.Index),$($_.Name)" }
+    } catch {
+        Write-Host "Error getting input device list"
+    }
+    """
+    
+    try:
+        result = subprocess.run(
+            [powershell_path, "-Command", ps_script],
+            capture_output=True,
+            text=True,
+            creationflags=subprocess.CREATE_NO_WINDOW
+        )
+        
+        if "ERROR: AudioDeviceCmdlets not installed" in result.stdout:
+            print("AudioDeviceCmdlets module needs to be installed. Installing...")
+            install_script = """
+            Install-Module -Name AudioDeviceCmdlets -Force -Scope CurrentUser
+            """
+            subprocess.run(
+                [powershell_path, "-Command", install_script],
+                creationflags=subprocess.CREATE_NO_WINDOW
+            )
+            result = subprocess.run(
+                [powershell_path, "-Command", ps_script],
+                capture_output=True,
+                text=True,
+                creationflags=subprocess.CREATE_NO_WINDOW
+            )
+        
+        devices = result.stdout.strip().split('\n')
+        devices = [device.split(',') for device in devices if device.strip()]
+        return devices
+        
+    except Exception as e:
+        print(f"Error getting input devices: {e}")
+        return []
+
+def switch_input_device(direction):
+    """Переключает устройство ввода"""
+    global current_input_device_index, input_devices
+    try:
+        if not input_devices:
+            return
+            
+        if direction == 'prev':
+            current_input_device_index = (current_input_device_index - 1) % len(input_devices)
+        else:
+            current_input_device_index = (current_input_device_index + 1) % len(input_devices)
+        
+        device_index = input_devices[current_input_device_index][0]
+        
+        # PowerShell скрипт для установки устройства ввода по умолчанию
+        ps_script = f"""
+        try {{
+            Set-AudioDevice -Index {device_index}
+        }} catch {{
+            Write-Host "Error setting default input device: $_"
+        }}
+        """
+        
+        subprocess.run(
+            [r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", "-Command", ps_script],
+            creationflags=subprocess.CREATE_NO_WINDOW
+        )
+        
+        # Показываем уведомление
+        device_name = input_devices[current_input_device_index][1]
+        Thread(target=show_notification, args=(f"Input switched to: {device_name}",)).start()
+        
+    except Exception as e:
+        print(f"Error switching input device: {e}")
 
 if __name__ == "__main__":
     main()
