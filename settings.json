@@ -34,5 +34,9 @@
     "next_input_device": {
         "keyboard": "None",
         "mouse": "None"
+    },
+    "toggle_mic_volume": {
+        "keyboard": "None",
+        "mouse": "None"
     }
 }

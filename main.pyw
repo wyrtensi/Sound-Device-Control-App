@@ -58,6 +58,10 @@ default_hotkeys = {
         "keyboard": "win+end",
         "mouse": "None"
     },
+    "toggle_mic_volume": {
+        "keyboard": "ctrl+m",
+        "mouse": "None"
+    },
     "media_play_pause": {
         "keyboard": "ctrl+space",
         "mouse": "None"
@@ -221,7 +225,9 @@ class KeyboardMouseTracker:
             return self.state_cache
 
 def normalize_key_name(key_str):
+    """Нормализует названия клавиш"""
     key_mapping = {
+        # Special keys
         'arrowup': 'up',
         'arrowdown': 'down',
         'arrowleft': 'left',
@@ -230,10 +236,12 @@ def normalize_key_name(key_str):
         'page_down': 'pagedown',
         'none': '',
         'space': 'space',
+        # Arrows
         'up': 'up',
         'down': 'down',
         'left': 'left',
         'right': 'right',
+        # Modifiers
         'ctrl_l': 'ctrl',
         'ctrl_r': 'ctrl',
         'alt_l': 'alt',
@@ -242,6 +250,7 @@ def normalize_key_name(key_str):
         'shift_r': 'shift',
         'cmd': 'win',
         'cmd_r': 'win',
+        # Mouse
         'mouseleft': 'mouseleft',
         'mouseright': 'mouseright',
         'mousemiddle': 'mousemiddle',
@@ -249,13 +258,74 @@ def normalize_key_name(key_str):
         'scrolldown': 'scrolldown',
         'lmb': 'mouseleft',
         'rmb': 'mouseright',
-        'mmb': 'mousemiddle'
+        'mmb': 'mousemiddle',
+        # Fix for control characters
+        '\x01': 'a',  # Ctrl+A
+        '\x02': 'b',  # Ctrl+B
+        '\x03': 'c',  # Ctrl+C
+        '\x04': 'd',  # Ctrl+D
+        '\x05': 'e',  # Ctrl+E
+        '\x06': 'f',  # Ctrl+F
+        '\x07': 'g',  # Ctrl+G
+        '\x08': 'h',  # Ctrl+H
+        '\x09': 'i',  # Ctrl+I (Tab)
+        '\x0A': 'j',  # Ctrl+J
+        '\x0B': 'k',  # Ctrl+K
+        '\x0C': 'l',  # Ctrl+L
+        '\x0D': 'm',  # Ctrl+M (Enter)
+        '\x0E': 'n',  # Ctrl+N
+        '\x0F': 'o',  # Ctrl+O
+        '\x10': 'p',  # Ctrl+P
+        '\x11': 'q',  # Ctrl+Q
+        '\x12': 'r',  # Ctrl+R
+        '\x13': 's',  # Ctrl+S
+        '\x14': 't',  # Ctrl+T
+        '\x15': 'u',  # Ctrl+U
+        '\x16': 'v',  # Ctrl+V
+        '\x17': 'w',  # Ctrl+W
+        '\x18': 'x',  # Ctrl+X
+        '\x19': 'y',  # Ctrl+Y
+        '\x1A': 'z',  # Ctrl+Z
+        '\r': 'm',    # Enter key
+        '\n': 'n',    # Newline
+        '\t': 'tab',  # Tab key
+        # Letters
+        'a': 'a', 'b': 'b', 'c': 'c', 'd': 'd', 'e': 'e',
+        'f': 'f', 'g': 'g', 'h': 'h', 'i': 'i', 'j': 'j',
+        'k': 'k', 'l': 'l', 'm': 'm', 'n': 'n', 'o': 'o',
+        'p': 'p', 'q': 'q', 'r': 'r', 's': 's', 't': 't',
+        'u': 'u', 'v': 'v', 'w': 'w', 'x': 'x', 'y': 'y',
+        'z': 'z',
+        # Cyrillic to Latin mapping
+        'й': 'q', 'ц': 'w', 'у': 'e', 'к': 'r', 'е': 't',
+        'н': 'y', 'г': 'u', 'ш': 'i', 'щ': 'o', 'з': 'p',
+        'х': '[', 'ъ': ']', 'ф': 'a', 'ы': 's', 'в': 'd',
+        'а': 'f', 'п': 'g', 'р': 'h', 'о': 'j', 'л': 'k',
+        'д': 'l', 'ж': ';', 'э': "'", 'я': 'z', 'ч': 'x',
+        'с': 'c', 'м': 'v', 'и': 'b', 'т': 'n', 'ь': 'm',
+        'б': ',', 'ю': '.',
+        # Additional Cyrillic letters
+        'ё': 'e',
+        # Cyrillic uppercase
+        'Й': 'q', 'Ц': 'w', 'У': 'e', 'К': 'r', 'Е': 't',
+        'Н': 'y', 'Г': 'u', 'Ш': 'i', 'Щ': 'o', 'З': 'p',
+        'Х': '[', 'Ъ': ']', 'Ф': 'a', 'Ы': 's', 'В': 'd',
+        'А': 'f', 'П': 'g', 'Р': 'h', 'О': 'j', 'Л': 'k',
+        'Д': 'l', 'Ж': ';', 'Э': "'", 'Я': 'z', 'Ч': 'x',
+        'С': 'c', 'М': 'v', 'И': 'b', 'Т': 'n', 'Ь': 'm',
+        'Б': ',', 'Ю': '.',
+        'Ё': 'e'
     }
     
+    # Remove 'key.' prefix if it exists
     if key_str.lower().startswith('key.'):
         key_str = key_str[4:]
     
-    return key_mapping.get(key_str.lower(), key_str.lower())
+    # Convert to lowercase for consistency
+    key_str = key_str.lower()
+    
+    # Check if key is in mapping
+    return key_mapping.get(key_str, key_str)
 
 def handle_hotkeys(tracker):
     last_action_time = {}
@@ -263,7 +333,6 @@ def handle_hotkeys(tracker):
     while True:
         try:
             time.sleep(0.008)
-            
             state = tracker.get_state()
             current_time = time.time()
             
@@ -287,6 +356,8 @@ def handle_hotkeys(tracker):
                         switch_input_device('prev')
                     elif action == 'next_input_device':
                         switch_input_device('next')
+                    elif action == 'toggle_mic_volume':
+                        toggle_microphone_volume()
                     elif action == 'media_play_pause':
                         send_media_message(APPCOMMAND_MEDIA_PLAY_PAUSE)
                     elif action == 'media_next':
@@ -295,38 +366,31 @@ def handle_hotkeys(tracker):
                         send_media_message(APPCOMMAND_MEDIA_PREVIOUSTRACK)
                     
                     last_action_time[action] = current_time
-                    
-        except Exception as e:
-            print(f"Error in handle_hotkeys: {e}")
+
+        except:
             time.sleep(0.1)
 
 def check_hotkey_combination(hotkey, state):
     try:
-        # Если обе комбинации None - сразу возвращаем False
         if (hotkey['keyboard'].lower() == 'none' and 
             hotkey['mouse'].lower() == 'none'):
             return False
 
-        # Проверяем клавиатурные клавиши
         keyboard_keys = set(k.strip().lower() for k in hotkey['keyboard'].split('+') 
                           if k.strip() and k.strip().lower() != 'none')
         
-        # Проверяем клавиши мыши
         mouse_keys = set(m.strip().lower() for m in hotkey['mouse'].split('+') 
                         if m.strip() and m.strip().lower() != 'none')
 
-        # Если нет ни клавиатурных, ни мышиных клавиш - возвращаем False
         if not keyboard_keys and not mouse_keys:
             return False
 
-        # Проверяем совпадение клавиатурных клавиш
         keyboard_match = True
         if keyboard_keys:
             keyboard_match = all(key in state['keyboard'] for key in keyboard_keys)
             if not keyboard_match:
                 return False
 
-        # Проверяем совпадение мышиных клавиш
         mouse_match = True
         if mouse_keys:
             for mouse_key in mouse_keys:
@@ -337,11 +401,9 @@ def check_hotkey_combination(hotkey, state):
             if not mouse_match:
                 return False
 
-        # Возвращаем True только если все необходимые клавиши совпали
         return True
 
-    except Exception as e:
-        print(f"Error checking hotkey combination: {e}")
+    except:
         return False
 
 def send_volume_message(app_command):
@@ -518,7 +580,7 @@ def index():
     return render_template("index.html", hotkeys=hotkeys)
 
 def save_settings(settings):
-    """Сохраняет настройки в файл"""
+    """Сохра��яет настройки в файл"""
     try:
         # Проверяем валидность JSON перед сохранением
         json.dumps(settings)
@@ -609,6 +671,12 @@ def main():
     global running, devices, input_devices, current_device_index, current_input_device_index
     running = True
     
+    # Выводим текущие настройки
+    print("\nCurrent hotkey settings:")
+    for action, combo in hotkeys.items():
+        print(f"{action}: keyboard='{combo['keyboard']}', mouse='{combo['mouse']}'")
+    print()
+    
     # Получаем списки устройств
     devices = get_audio_devices()
     input_devices = get_input_devices()
@@ -688,7 +756,7 @@ input_devices = []
 current_input_device_index = 0
 
 def get_input_devices():
-    """Получает список устройств ввода (микрофонов)"""
+    """Получает список устройств ввода (микофонов)"""
     powershell_path = r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
     
     ps_script = """
@@ -771,6 +839,32 @@ def switch_input_device(direction):
         
     except Exception as e:
         print(f"Error switching input device: {e}")
+
+def toggle_microphone_volume():
+    """Переключает громкость микрофона между 0% и 100%"""
+    try:
+        pythoncom.CoInitialize()
+        devices = AudioUtilities.GetMicrophone()
+        
+        if not devices:
+            return
+
+        interface = devices.Activate(
+            IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+        volume = cast(interface, POINTER(IAudioEndpointVolume))
+        
+        if volume.GetMute():
+            volume.SetMute(0, None)
+            volume.SetMasterVolumeLevelScalar(1.0, None)
+            Thread(target=show_notification, args=("Microphone: ON",)).start()
+        else:
+            volume.SetMute(1, None)
+            volume.SetMasterVolumeLevelScalar(0.0, None)
+            Thread(target=show_notification, args=("Microphone: OFF",)).start()
+    except:
+        pass
+    finally:
+        pythoncom.CoUninitialize()
 
 if __name__ == "__main__":
     main()
