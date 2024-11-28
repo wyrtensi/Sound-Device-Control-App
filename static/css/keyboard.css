@@ -290,8 +290,37 @@ h3::after {
     width: 450px;
 }
 
-.key.function-key {
-    background: linear-gradient(180deg, #3a3a3a 0%, #333333 100%);
-    font-size: 12px;
-    min-width: 50px;
-} 
+.numpad-container {
+    margin-top: 20px;
+    background-color: rgba(26, 26, 26, 0.7);
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.numpad-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 15px;
+}
+
+.numpad-body .keyboard-row {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin: 0;
+}
+
+.numpad-body .key {
+    width: 45px;
+    height: 45px;
+    min-width: unset;
+    padding: 5px;
+}
+
+.numpad-body .numpad-zero {
+    width: 96px;
+}
+ 
