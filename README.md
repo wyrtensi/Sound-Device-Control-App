@@ -1,4 +1,6 @@
 Sound Device Control App
+
+Only for Windows.
 ![image](https://github.com/user-attachments/assets/02de48b0-698b-416b-8cc5-6d1eea045e8e)
 App features:
 
