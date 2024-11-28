@@ -8,17 +8,19 @@ App features:
 4. Hotkeys for play/plause, next/pervious song.
 5. Intuitive interface for hotkeys assignment. 
 
-![image](https://github.com/user-attachments/assets/2a08f2ed-6898-49d4-8a4f-29a0213d7091)
+![image](https://github.com/user-attachments/assets/02de48b0-698b-416b-8cc5-6d1eea045e8e)
 
-Here is the list of required packages for this program. You can install them using CMD:
+How to install:
+1. Install python 3.12 https://www.python.org/downloads/release/python-3127/
+2. Install requirements, launch cmd and paste this:
 
 pip install flask pynput pycaw pywin32 mouse pystray pillow comtypes keyboard six
-![image](https://github.com/user-attachments/assets/5ca2f87c-1ba6-42d1-8009-cddb9a5b5da9)
-
-Additionally, you will need the PowerShell module AudioDeviceCmdlets, which the program will attempt to install automatically during the first run. If this does not happen, you can manually install it via PowerShell with administrator privileges:
+3. Install AudioDeviceCmdlets Powershell module, launch Windows PowerShell as administrator and paste this:
 
 Install-Module -Name AudioDeviceCmdlets -Force -Scope CurrentUser
-![image](https://github.com/user-attachments/assets/828751e2-8673-4f8b-a9f5-1fbd3b17c32f)
+4. Launch main.py and enjoy the app.
+
+![image](https://github.com/user-attachments/assets/02de48b0-698b-416b-8cc5-6d1eea045e8e)
 
 ![image](https://github.com/user-attachments/assets/64039e2c-595a-4502-afbf-e137b6110e13)
 
