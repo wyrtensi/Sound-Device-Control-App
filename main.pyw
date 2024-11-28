@@ -60,14 +60,14 @@ app = Flask(__name__)
 # Файл для хранения настроек
 SETTINGS_FILE = "settings.json"
 
-# Горячие клавиши по умолчанию
+# Обновляем дефолтные настройки с правильной структурой
 default_hotkeys = {
     "volume_up": {
-        "keyboard": "ctrl+up",
+        "keyboard": "ctrl",
         "mouse": "scrollup"
     },
     "volume_down": {
-        "keyboard": "ctrl+down",
+        "keyboard": "ctrl",
         "mouse": "scrolldown"
     },
     "prev_device": {
@@ -92,46 +92,80 @@ default_hotkeys = {
     }
 }
 
-# Загрузка настроек
-def load_settings():
-    """Загружает настройки из файла, объединяя их с настройками по умолчанию"""
+def create_default_settings():
+    """Создает файл настроек по умолчанию"""
     try:
+        with open('settings.json', 'w', encoding='utf-8') as f:
+            json.dump(default_hotkeys, f, ensure_ascii=False, indent=4)
+        return True
+    except Exception as e:
+        print(f"Ошибка при создании файла настроек: {e}")
+        return False
+
+def load_settings():
+    """Загружает настройки из файла"""
+    try:
+        # Пробуем загрузить существующие настройки
         with open('settings.json', 'r', encoding='utf-8') as f:
-            saved_settings = json.load(f)
+            settings = json.load(f)
+            
+        # Проверяем структуру и исправляем если нужно
+        fixed_settings = {}
+        for action, combo in settings.items():
+            if isinstance(combo, dict) and "keyboard" in combo and "mouse" in combo:
+                # Структура правильная, копируем как есть
+                fixed_settings[action] = combo
+            elif isinstance(combo, dict):
+                # Структура неправильная, исправляем
+                keyboard_keys = []
+                mouse_keys = []
+                
+                # Собираем все клавиши
+                all_keys = []
+                for field, value in combo.items():
+                    if value and value.lower() != "нет":
+                        all_keys.extend(value.lower().split('+'))
+                
+                # Распределяем клавиши
+                for key in all_keys:
+                    if ('scroll' in key or 'mouse' in key or 
+                        key in ['лкм', 'пкм', 'скм', 'scrollup', 'scrolldown']):
+                        if 'up' in key:
+                            mouse_keys.append('scrollup')
+                        elif 'down' in key:
+                            mouse_keys.append('scrolldown')
+                        elif 'left' in key or key == 'лкм':
+                            mouse_keys.append('mouseleft')
+                        elif 'right' in key or key == 'пкм':
+                            mouse_keys.append('mouseright')
+                        elif 'middle' in key or key == 'скм':
+                            mouse_keys.append('mousemiddle')
+                    else:
+                        keyboard_keys.append(key)
+                
+                fixed_settings[action] = {
+                    "keyboard": '+'.join(keyboard_keys) if keyboard_keys else "Нет",
+                    "mouse": '+'.join(mouse_keys) if mouse_keys else "Нет"
+                }
+            else:
+                # Если полностью неправильная структура, берем значения по умолчанию
+                fixed_settings[action] = default_hotkeys.get(action, {
+                    "keyboard": "Нет",
+                    "mouse": "Нет"
+                })
         
-        # Создаем копию настроек по умолчанию
-        settings = default_hotkeys.copy()
+        # Сохраняем исправленные настройки
+        with open('settings.json', 'w', encoding='utf-8') as f:
+            json.dump(fixed_settings, f, ensure_ascii=False, indent=4)
         
-        # Обновляем только существующие настройки из сохраненного файла
-        for key in saved_settings:
-            if key in settings:
-                if isinstance(saved_settings[key], dict):
-                    settings[key].update(saved_settings[key])
-                else:
-                    # Преобразуем старый формат в новый
-                    settings[key] = {
-                        "keyboard": saved_settings[key],
-                        "mouse": "Нет"
-                    }
-        
-        # Сохраняем обновленные настройки
-        save_settings(settings)
-        return settings
+        return fixed_settings
     except FileNotFoundError:
+        # Если файл не существует, создаем новый
+        create_default_settings()
         return default_hotkeys
     except Exception as e:
         print(f"Ошибка при загрузке настроек: {e}")
         return default_hotkeys
-
-# Сохранение настроек
-def save_settings(hotkeys):
-    try:
-        with open('settings.json', 'w', encoding='utf-8') as f:
-            json.dump(hotkeys, f, ensure_ascii=False, indent=4)
-        return True
-    except Exception as e:
-        print(f"Ошибка при сохранении настроек: {e}")
-        return False
 
 hotkeys = load_settings()
 
@@ -194,7 +228,7 @@ def set_default_audio_device(device_index):
     try {{
         Set-AudioDevice -Index {device_index}
     }} catch {{
-        Write-Host "Ошибка при установке устройства по умолчанию: $_"
+        Write-Host "Ошибка при установке устройства по умолчаию: $_"
     }}
     """
     
@@ -297,6 +331,15 @@ def normalize_key_name(key_str):
         'shift_r': 'shift',
         'cmd': 'win',
         'cmd_r': 'win',
+        # Мышь
+        'mouseleft': 'mouseleft',
+        'mouseright': 'mouseright',
+        'mousemiddle': 'mousemiddle',
+        'scrollup': 'scrollup',
+        'scrolldown': 'scrolldown',
+        'лкм': 'mouseleft',
+        'пкм': 'mouseright',
+        'скм': 'mousemiddle',
         # Кириллица -> латиница
         'ф': 'a', 'и': 'b', 'с': 'c', 'в': 'd', 'у': 'e',
         'а': 'f', 'п': 'g', 'р': 'h', 'ш': 'i', 'о': 'j',
@@ -388,7 +431,7 @@ class KeyboardMouseTracker:
     def _on_mouse_event(self, event):
         """Обработчик событий мыши"""
         try:
-            # Проверяем наличие атрибута delta (как в работающем коде)
+            # Прорем наличие атрибута delta (кк в работающем коде)
             if hasattr(event, 'delta'):
                 with self.lock:
                     if event.delta > 0:
@@ -567,23 +610,36 @@ def handle_hotkeys(tracker):
 def check_hotkey_combination(hotkey, state):
     """Проверяет комбинацию клавиш"""
     try:
-        required_keyboard = set(k.strip().lower() for k in hotkey['keyboard'].split('+') if k.strip() and k.strip().lower() != 'нет')
-        required_mouse = set(m.strip().lower() for m in hotkey['mouse'].split('+') if m.strip() and m.strip().lower() != 'нет')
+        # Проверяем клавиши клавиатуры
+        keyboard_keys = set(k.strip().lower() for k in hotkey['keyboard'].split('+') 
+                          if k.strip() and k.strip().lower() != 'нет')
+        keyboard_match = all(key in state['keyboard'] for key in keyboard_keys)
 
-        keyboard_match = all(key in state['keyboard'] for key in required_keyboard)
-        
+        # Проверяем клавиши мыши
+        mouse_keys = set(m.strip().lower() for m in hotkey['mouse'].split('+') 
+                        if m.strip() and m.strip().lower() != 'нет')
         mouse_match = True
-        if required_mouse:
-            for mouse_key in required_mouse:
+        if mouse_keys:
+            for mouse_key in mouse_keys:
                 if mouse_key in ['scrollup', 'scrolldown']:
                     mouse_match = mouse_match and state['mouse']['scroll'] == mouse_key
                 else:
                     mouse_match = mouse_match and mouse_key in state['mouse']['buttons']
 
-        return keyboard_match and (not required_mouse or mouse_match)
+        return keyboard_match and (not mouse_keys or mouse_match)
 
     except Exception as e:
         print(f"Error checking hotkey combination: {e}")
+        return False
+
+def save_settings(settings):
+    """Сохраняет настройки в файл"""
+    try:
+        with open('settings.json', 'w', encoding='utf-8') as f:
+            json.dump(settings, f, ensure_ascii=False, indent=4)
+        return True
+    except Exception as e:
+        print(f"Ошибка при сохранении настроек: {e}")
         return False
 
 # Маршруты Flask
@@ -595,31 +651,66 @@ def index():
 def update_hotkey():
     try:
         data = request.json
+        print("Received data:", data)  # Отладка
+        
         action = data["action"]
-        keyboard_keys = data["keyboard"]
-        mouse_keys = data["mouse"]
+        keyboard_keys = data.get("keyboard", "Нет")
+        mouse_keys = data.get("mouse", "Нет")
         
-        # Нормализуем клавиши перед сохранением
-        keyboard_keys = '+'.join(normalize_key_name(k) for k in keyboard_keys.split('+') if k.strip())
-        mouse_keys = '+'.join(normalize_key_name(m) for m in mouse_keys.split('+') if m.strip())
-        
-        hotkeys[action] = {
-            "keyboard": keyboard_keys or "Нет",
-            "mouse": mouse_keys or "Нет"
+        print(f"Action: {action}")  # Отладка
+        print(f"Keyboard keys: {keyboard_keys}")  # Отладка
+        print(f"Mouse keys: {mouse_keys}")  # Отладка
+
+        # Загружаем текущие настройки
+        try:
+            with open('settings.json', 'r', encoding='utf-8') as f:
+                current_hotkeys = json.load(f)
+        except FileNotFoundError:
+            current_hotkeys = default_hotkeys
+
+        # Обновляем настройки
+        current_hotkeys[action] = {
+            "keyboard": keyboard_keys,
+            "mouse": mouse_keys
         }
-        
-        save_settings(hotkeys)
-        return jsonify({"status": "success", "hotkeys": hotkeys})
+
+        print(f"Updated hotkeys: {current_hotkeys[action]}")  # Отладка
+
+        # Сохраняем настройки
+        if save_settings(current_hotkeys):
+            # Обновляем глобальные настройки
+            global hotkeys
+            hotkeys = current_hotkeys
+            return jsonify({"status": "success", "hotkeys": current_hotkeys})
+        else:
+            return jsonify({"status": "error", "message": "Ошибка при сохранении настроек"})
+
     except Exception as e:
+        print(f"Error in update_hotkey: {e}")
+        import traceback
+        print(traceback.format_exc())  # Полный стек ошибки
         return jsonify({"status": "error", "message": str(e)})
 
 @app.route("/save_settings", methods=["POST"])
 def save_settings_endpoint():
     try:
-        global hotkeys
-        hotkeys = request.json
-        save_settings(hotkeys)
-        return jsonify({"status": "success"})
+        data = request.json
+        # Проверяем формат данных
+        for action, combo in data.items():
+            if not isinstance(combo, dict) or "keyboard" not in combo or "mouse" not in combo:
+                return jsonify({
+                    "status": "error",
+                    "message": f"Неверный формат данных для действия {action}"
+                })
+
+        # Сохраняем настройки
+        if save_settings(data):
+            # Обновляем глобальные настройки
+            global hotkeys
+            hotkeys = data
+            return jsonify({"status": "success"})
+        else:
+            return jsonify({"status": "error", "message": "Ошибка при сохранении настроек"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
 

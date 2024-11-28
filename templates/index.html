@@ -1,511 +1,250 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Настройка горячих клавиш</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/keyboard.css') }}">
     <style>
-        :root {
-            --bg-primary: #2D1B69;      /* темно-фиолетовый фон */
-            --bg-secondary: #371F7D;    /* фиолетовый фон элементов */
-            --accent-purple: #8A4FFF;   /* акцентный фиолетовый */
-            --text-primary: #FFFFFF;
-            --text-secondary: #B4A9D1;
-            --border-color: #4B2B8F;
-            --gradient-card: linear-gradient(135deg, #4B2B8F 0%, #371F7D 100%);
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
         }
 
-        body {
-            font-family: 'PayPal Sans Big', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            max-width: 1800px;
-            padding: 20px;
-            min-height: auto;
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
+        .container {
+            max-width: 800px;
+            margin: 30px auto;
+            background-color: rgba(45, 45, 45, 0.7);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         h1 {
-            grid-column: 1 / -1;
-            margin-bottom: 20px;
-            font-size: 28px;
+            text-align: center;
+            color: #fff;
+            margin-bottom: 40px;
+            font-size: 2.5em;
+            font-weight: 600;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        h1::after {
+            content: '';
+            display: block;
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(90deg, #007bff, #00c3ff);
+            margin: 15px auto 0;
+            border-radius: 2px;
         }
 
         .hotkey-group {
-            background: var(--gradient-card);
-            border-radius: 24px;
+            margin-bottom: 25px;
             padding: 15px;
-            margin-bottom: 0;
-            min-height: 140px;
-            display: flex;
-            flex-direction: column;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            transition: all 0.2s ease;
+            background-color: rgba(51, 51, 51, 0.5);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
         .hotkey-group:hover {
-            border-color: var(--accent-purple);
             transform: translateY(-2px);
-            transition: all 0.3s ease;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
         }
 
         .hotkey-label {
-            color: var(--text-primary);
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 10px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        input[type="text"] {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            color: var(--text-primary);
-            padding: 8px 12px;
-            font-size: 14px;
-            backdrop-filter: blur(5px);
-            width: 150px;
-            transition: all 0.2s ease;
-            cursor: pointer;
-        }
-
-        input[type="text"]:hover {
-            border-color: var(--accent-purple);
-            box-shadow: 0 0 15px rgba(138, 79, 255, 0.3);
-        }
-
-        button {
-            background: var(--accent-purple);
-            color: white;
-            border: none;
-            border-radius: 20px;
-            padding: 15px 30px;
-            font-size: 18px;
+            display: block;
+            margin-bottom: 8px;
             font-weight: 500;
+            color: #fff;
+            font-size: 1em;
+            opacity: 0.9;
+        }
+
+        .hotkey-input {
+            width: calc(100% - 30px);
+            padding: 8px 12px;
+            background-color: rgba(68, 68, 68, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 0.95em;
+            cursor: pointer;
             transition: all 0.2s ease;
-            min-width: 120px;
-            box-shadow: 0 4px 15px rgba(138, 79, 255, 0.3);
         }
 
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(138, 79, 255, 0.4);
+        .hotkey-input:hover {
+            background-color: rgba(80, 80, 80, 0.5);
+            border-color: rgba(255, 255, 255, 0.2);
         }
 
-        button:active {
-            transform: translateY(1px);
+        .hotkey-input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+            background-color: rgba(68, 68, 68, 0.7);
         }
 
-        #save-button {
-            background: linear-gradient(135deg, #8A4FFF 0%, #6C3CE6 100%);
-            grid-column: 1 / -1;
-            max-width: none;
-            margin: 20px 0 0 0;
-            padding: 15px;
-            border-radius: 30px;
-        }
-
-        #save-button:hover {
-            background: #2ED19E;
-        }
-
-        .hotkey-inputs {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            align-items: start;
-        }
-
-        .hotkey-inputs > div {
+        .save-button {
+            display: block;
             width: 100%;
+            padding: 15px;
+            background: linear-gradient(90deg, #007bff, #00c3ff);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 30px;
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
         }
 
-        label {
-            display: inline-block;
-            margin-right: 10px;
-            width: auto;
+        .save-button:hover {
+            background: linear-gradient(90deg, #0056b3, #0099ff);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
         }
 
-        /* Стилизация скроллбара */
-        ::-webkit-scrollbar {
-            width: 8px;
+        .save-button:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 10px rgba(0, 123, 255, 0.3);
         }
 
-        ::-webkit-scrollbar-track {
-            background: var(--bg-primary);
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--border-color);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--primary-blue);
-        }
-
-        /* Медиа-запрос для мобильных устройств */
-        @media (max-width: 768px) {
-            .hotkey-group {
-                padding: 16px;
+        /* Добавляем анимацию для уведомлений */
+        @keyframes slideIn {
+            from {
+                transform: translateY(-100%);
+                opacity: 0;
             }
-
-            h1 {
-                font-size: 24px;
-            }
-
-            button {
-                width: 100%;
-            }
-
-            input[type="text"] {
-                width: 100%;
+            to {
+                transform: translateY(0);
+                opacity: 1;
             }
         }
 
-        /* Медиа-запрос для экранов меньше 1080p */
-        @media (max-height: 1080px) {
-            body {
-                padding: 15px;
-                gap: 15px;
-            }
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            display: none;
+            animation: slideIn 0.3s ease;
+            z-index: 1000;
+        }
 
-            .hotkey-group {
-                padding: 15px;
-                min-height: 150px;
-            }
-
-            input[type="text"] {
-                padding: 8px 12px;
-            }
-
-            #save-button {
-                margin-top: 15px;
-                padding: 12px;
-            }
+        .notification.error {
+            background: linear-gradient(90deg, #dc3545, #c82333);
         }
     </style>
 </head>
 <body>
-    <h1>Настройка горячих клавиш</h1>
-
-    <div class="hotkey-group">
-        <div class="hotkey-label">Volume Up</div>
-        <div class="hotkey-inputs">
-            <div>
-                <label>Клавиатура:</label>
-                <input type="text" id="volume_up_keyboard" value="{{ hotkeys['volume_up']['keyboard'] }}" onclick="startRecording('volume_up', 'keyboard')" readonly>
+    <div class="container">
+        <h1>Настройка горячих клавиш</h1>
+        
+        <form id="hotkeyForm">
+            {% for action, combo in hotkeys.items() %}
+            <div class="hotkey-group">
+                <label class="hotkey-label">
+                    {% if action == "volume_up" %}
+                    Увеличить громкость
+                    {% elif action == "volume_down" %}
+                    Уменьшить громкость
+                    {% elif action == "prev_device" %}
+                    Предыдущее устройство
+                    {% elif action == "next_device" %}
+                    Следующее устройство
+                    {% elif action == "media_play_pause" %}
+                    Воспроизведение/Пауза
+                    {% elif action == "media_next" %}
+                    Следующий трек
+                    {% elif action == "media_previous" %}
+                    Предыдущий трек
+                    {% endif %}
+                </label>
+                <input type="text" 
+                       class="hotkey-input" 
+                       data-action="{{ action }}" 
+                       data-keyboard="{{ combo.keyboard }}"
+                       data-mouse="{{ combo.mouse }}"
+                       value="{{ combo.keyboard if combo.keyboard != 'Нет' }}{{ '+' if combo.keyboard != 'Нет' and combo.mouse != 'Нет' }}{{ combo.mouse if combo.mouse != 'Нет' }}"
+                       readonly>
             </div>
-            <div>
-                <label>Мышь:</label>
-                <input type="text" id="volume_up_mouse" value="{{ hotkeys['volume_up']['mouse'] }}" onclick="startRecording('volume_up', 'mouse')" readonly>
-            </div>
-        </div>
+            {% endfor %}
+            
+            <button type="submit" class="save-button">Сохранить настройки</button>
+        </form>
     </div>
 
-    <div class="hotkey-group">
-        <div class="hotkey-label">Volume Down</div>
-        <div class="hotkey-inputs">
-            <div>
-                <label>Клавиатура:</label>
-                <input type="text" id="volume_down_keyboard" value="{{ hotkeys['volume_down']['keyboard'] }}" onclick="startRecording('volume_down', 'keyboard')" readonly>
-            </div>
-            <div>
-                <label>Мышь:</label>
-                <input type="text" id="volume_down_mouse" value="{{ hotkeys['volume_down']['mouse'] }}" onclick="startRecording('volume_down', 'mouse')" readonly>
-            </div>
-        </div>
-    </div>
+    <div id="notification" class="notification">Настройки успешно сохранены</div>
 
-    <div class="hotkey-group">
-        <div class="hotkey-label">Previous Device</div>
-        <div class="hotkey-inputs">
-            <div>
-                <label>Клавиатура:</label>
-                <input type="text" id="prev_device_keyboard" value="{{ hotkeys['prev_device']['keyboard'] }}" onclick="startRecording('prev_device', 'keyboard')" readonly>
-            </div>
-            <div>
-                <label>Мышь:</label>
-                <input type="text" id="prev_device_mouse" value="{{ hotkeys['prev_device']['mouse'] }}" onclick="startRecording('prev_device', 'mouse')" readonly>
-            </div>
-        </div>
-    </div>
-
-    <div class="hotkey-group">
-        <div class="hotkey-label">Next Device</div>
-        <div class="hotkey-inputs">
-            <div>
-                <label>Клавиатура:</label>
-                <input type="text" id="next_device_keyboard" value="{{ hotkeys['next_device']['keyboard'] }}" onclick="startRecording('next_device', 'keyboard')" readonly>
-            </div>
-            <div>
-                <label>Мышь:</label>
-                <input type="text" id="next_device_mouse" value="{{ hotkeys['next_device']['mouse'] }}" onclick="startRecording('next_device', 'mouse')" readonly>
-            </div>
-        </div>
-    </div>
-
-    <div class="hotkey-group">
-        <div class="hotkey-label">Play/Pause</div>
-        <div class="hotkey-inputs">
-            <div>
-                <label>Клавиатура:</label>
-                <input type="text" id="media_play_pause_keyboard" value="{{ hotkeys['media_play_pause']['keyboard'] }}" onclick="startRecording('media_play_pause', 'keyboard')" readonly>
-            </div>
-            <div>
-                <label>Мышь:</label>
-                <input type="text" id="media_play_pause_mouse" value="{{ hotkeys['media_play_pause']['mouse'] }}" onclick="startRecording('media_play_pause', 'mouse')" readonly>
-            </div>
-        </div>
-    </div>
-
-    <div class="hotkey-group">
-        <div class="hotkey-label">Next Track</div>
-        <div class="hotkey-inputs">
-            <div>
-                <label>Клавиатура:</label>
-                <input type="text" id="media_next_keyboard" value="{{ hotkeys['media_next']['keyboard'] }}" onclick="startRecording('media_next', 'keyboard')" readonly>
-            </div>
-            <div>
-                <label>Мышь:</label>
-                <input type="text" id="media_next_mouse" value="{{ hotkeys['media_next']['mouse'] }}" onclick="startRecording('media_next', 'mouse')" readonly>
-            </div>
-        </div>
-    </div>
-
-    <div class="hotkey-group">
-        <div class="hotkey-label">Previous Track</div>
-        <div class="hotkey-inputs">
-            <div>
-                <label>Клавиатура:</label>
-                <input type="text" id="media_previous_keyboard" value="{{ hotkeys['media_previous']['keyboard'] }}" onclick="startRecording('media_previous', 'keyboard')" readonly>
-            </div>
-            <div>
-                <label>Мышь:</label>
-                <input type="text" id="media_previous_mouse" value="{{ hotkeys['media_previous']['mouse'] }}" onclick="startRecording('media_previous', 'mouse')" readonly>
-            </div>
-        </div>
-    </div>
-
-    <button id="save-button" onclick="saveAllSettings()">Сохранить настройки</button>
-
+    {% include 'keyboard_modal.html' %}
+    
+    <script src="{{ url_for('static', filename='js/keyboard.js') }}"></script>
     <script>
-        let isRecording = false;
-        let currentAction = null;
-        let currentKeys = {
-            keyboard: new Set(),
-            mouse: new Set()
-        };
-        let recordingTimeout = null;
-        let currentInputType = null;
-
-        function startRecording(action, inputType) {
-            if (isRecording) {
-                stopRecording();
-                return;
-            }
+        function showNotification(message, isError = false) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.display = 'block';
             
-            isRecording = true;
-            currentAction = action;
-            currentInputType = inputType;
-            
-            const input = document.getElementById(`${action}_${inputType}`);
-            const previousValue = input.value;
-            
-            currentKeys[inputType].clear();
-            input.value = "Нажмите клавиши...";
-            
-            const escapeHandler = (e) => {
-                if (e.key === 'Escape') {
-                    e.preventDefault();
-                    input.value = previousValue;
-                    document.removeEventListener('keydown', escapeHandler);
-                    stopRecording();
-                }
-            };
-            
-            document.addEventListener('keydown', escapeHandler);
-            
-            if (inputType === 'keyboard') {
-                document.addEventListener('keydown', recordKeyboard);
+            if (isError) {
+                notification.classList.add('error');
             } else {
-                document.addEventListener('mousedown', recordMouse);
-                document.addEventListener('wheel', recordScroll);
+                notification.classList.remove('error');
             }
-            
-            recordingTimeout = setTimeout(() => {
-                if (currentKeys[inputType].size === 0) {
-                    input.value = "";
-                }
-                document.removeEventListener('keydown', escapeHandler);
-                stopRecording();
-            }, 2000);
+
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
         }
 
-        function recordKeyboard(e) {
+        document.getElementById('hotkeyForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!isRecording) return;
             
-            if (e.key === 'Escape') return;
-            
-            const keyMapping = {
-                'ArrowUp': 'up',
-                'ArrowDown': 'down',
-                'ArrowLeft': 'left',
-                'ArrowRight': 'right',
-                'PageUp': 'pageup',
-                'PageDown': 'pagedown',
-                'Control': 'ctrl',
-                'Alt': 'alt',
-                'Shift': 'shift',
-                'Meta': 'win',
-                ' ': 'space'
-            };
-
-            if (e.ctrlKey) currentKeys.keyboard.add('ctrl');
-            if (e.altKey) currentKeys.keyboard.add('alt');
-            if (e.shiftKey) currentKeys.keyboard.add('shift');
-            if (e.metaKey) currentKeys.keyboard.add('win');
-            
-            const key = keyMapping[e.key] || e.key.toLowerCase();
-            if (!['control', 'alt', 'shift', 'meta', 'escape'].includes(key)) {
-                currentKeys.keyboard.add(key);
-            }
-            
-            updateInputDisplay();
-        }
-
-        function recordMouse(e) {
-            e.preventDefault();
-            if (!isRecording) return;
-            
-            const buttonNames = {
-                0: 'mouseleft',
-                1: 'mousemiddle',
-                2: 'mouseright'
-            };
-            
-            currentKeys.mouse.add(buttonNames[e.button]);
-            updateInputDisplay();
-        }
-
-        function recordScroll(e) {
-            e.preventDefault();
-            if (!isRecording) return;
-            
-            if (e.deltaY < 0) {
-                currentKeys.mouse.add('scrollup');
-            } else {
-                currentKeys.mouse.add('scrolldown');
-            }
-            
-            updateInputDisplay();
-        }
-
-        function updateInputDisplay() {
-            const keyboardStr = Array.from(currentKeys.keyboard).join('+');
-            const mouseStr = Array.from(currentKeys.mouse).join('+');
-            
-            document.getElementById(`${currentAction}_keyboard`).value = keyboardStr || "Нет";
-            document.getElementById(`${currentAction}_mouse`).value = mouseStr || "Нет";
-        }
-
-        function stopRecording() {
-            isRecording = false;
-            clearTimeout(recordingTimeout);
-            
-            if (currentInputType === 'keyboard') {
-                document.removeEventListener('keydown', recordKeyboard);
-            } else {
-                document.removeEventListener('mousedown', recordMouse);
-                document.removeEventListener('wheel', recordScroll);
-            }
-            
-            if (currentKeys[currentInputType].size === 0) {
-                return;
-            }
-            
-            updateInputValue(currentAction, currentInputType);
-            
-            currentAction = null;
-            currentInputType = null;
-        }
-
-        function updateInputValue(action, inputType) {
-            const input = document.getElementById(`${action}_${inputType}`);
-            const keys = Array.from(currentKeys[inputType]).join(' + ');
-            input.value = keys || defaultValues[inputType];
-            
-            const data = {
-                action: action,
-                [inputType]: keys
-            };
-            
-            fetch('/update_hotkeys', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
+            const hotkeys = {};
+            document.querySelectorAll('.hotkey-input').forEach(input => {
+                const action = input.getAttribute('data-action');
+                hotkeys[action] = {
+                    keyboard: input.getAttribute('data-keyboard') || "Нет",
+                    mouse: input.getAttribute('data-mouse') || "Нет"
+                };
             });
-        }
 
-        document.addEventListener('keyup', function(e) {
-            if (isRecording && e.key === 'Enter') {
-                stopRecording();
+            try {
+                const response = await fetch('/save_settings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(hotkeys)
+                });
+
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showNotification('Настройки успешно сохранены');
+                } else {
+                    showNotification('Ошибка при сохранении настроек: ' + result.message, true);
+                }
+            } catch (error) {
+                showNotification('Ошибка при сохранении настроек: ' + error, true);
             }
         });
-
-        function saveAllSettings() {
-            fetch('/save_settings', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    volume_up: {
-                        keyboard: document.getElementById('volume_up_keyboard').value,
-                        mouse: document.getElementById('volume_up_mouse').value
-                    },
-                    volume_down: {
-                        keyboard: document.getElementById('volume_down_keyboard').value,
-                        mouse: document.getElementById('volume_down_mouse').value
-                    },
-                    prev_device: {
-                        keyboard: document.getElementById('prev_device_keyboard').value,
-                        mouse: document.getElementById('prev_device_mouse').value
-                    },
-                    next_device: {
-                        keyboard: document.getElementById('next_device_keyboard').value,
-                        mouse: document.getElementById('next_device_mouse').value
-                    },
-                    media_play_pause: {
-                        keyboard: document.getElementById('media_play_pause_keyboard').value,
-                        mouse: document.getElementById('media_play_pause_mouse').value
-                    },
-                    media_next: {
-                        keyboard: document.getElementById('media_next_keyboard').value,
-                        mouse: document.getElementById('media_next_mouse').value
-                    },
-                    media_previous: {
-                        keyboard: document.getElementById('media_previous_keyboard').value,
-                        mouse: document.getElementById('media_previous_mouse').value
-                    }
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    alert('Настройки сохранены!');
-                } else {
-                    alert('Ошибка при сохранении настроек');
-                }
-            });
-        }
     </script>
 </body>
 </html>

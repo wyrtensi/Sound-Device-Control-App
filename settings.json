@@ -1,7 +1,7 @@
 {
     "volume_up": {
         "keyboard": "win",
-        "mouse": "scrollup"
+        "mouse": "scrolldown"
     },
     "volume_down": {
         "keyboard": "win",
@@ -13,18 +13,18 @@
     },
     "next_device": {
         "keyboard": "win+pageup",
-        "mouse": ""
+        "mouse": "Нет"
     },
     "media_play_pause": {
-        "keyboard": "ctrl + win + down",
+        "keyboard": "win+ctrl+down",
         "mouse": "Нет"
     },
     "media_next": {
-        "keyboard": "ctrl + win + right",
+        "keyboard": "win+ctrl+right",
         "mouse": "Нет"
     },
     "media_previous": {
-        "keyboard": "ctrl + win + left",
+        "keyboard": "win+ctrl+left",
         "mouse": "Нет"
     }
 }
