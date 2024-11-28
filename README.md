@@ -1,6 +1,6 @@
 Playback Device Switch Sound Volume
 
-Control volume adjustment, music playback, and playback device switching using keyboard or mouse hotkeys. It utilizes Python notifications and HTML/JS for configuration (interface) and is accessible from the system tray. This program is designed exclusively for Windows and uses Python + PowerShell + HTML + JS.
+Control volume adjustment, music playback, and playback device switching using keyboard or mouse hotkeys. It utilizes Python notifications and HTML/JS for configuration (interface) and is accessible from the system tray. This program is designed exclusively for Windows and uses Python + PowerShell + HTML + JS + CSS.
 
 It filters microphones by the name "microphone" to exclude them from the device list. Simply rename your microphones to "microphone" to achieve this.
 
