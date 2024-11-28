@@ -7,6 +7,7 @@ It filters microphones by the name "microphone" to exclude them from the device 
 Here is the list of required packages for this program. You can install them using CMD:
 
 pip install flask pynput pycaw pywin32 mouse pystray pillow comtypes keyboard six
+
 Additionally, you will need the PowerShell module AudioDeviceCmdlets, which the program will attempt to install automatically during the first run. If this does not happen, you can manually install it via PowerShell with administrator privileges:
 
 Install-Module -Name AudioDeviceCmdlets -Force -Scope CurrentUser
