@@ -1,4 +1,4 @@
-Sound Device Switch Sound Volume
+Sound Device Control App
 ![image](https://github.com/user-attachments/assets/02de48b0-698b-416b-8cc5-6d1eea045e8e)
 
 Control volume adjustment, media button controls, and playback device switching using keyboard or mouse hotkeys. It utilizes Python notifications and HTML/JS for configuration (interface) and is accessible from the system tray. This program is designed exclusively for Windows and uses Python + PowerShell + HTML + JS + CSS. Tested on python 3.12.
