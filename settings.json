@@ -8,11 +8,23 @@
         "mouse": "scrolldown"
     },
     "prev_device": {
-        "keyboard": "win + pagedown",
+        "keyboard": "win+pagedown",
         "mouse": "Нет"
     },
     "next_device": {
         "keyboard": "win+pageup",
         "mouse": ""
+    },
+    "media_play_pause": {
+        "keyboard": "ctrl + win + down",
+        "mouse": "Нет"
+    },
+    "media_next": {
+        "keyboard": "ctrl + win + right",
+        "mouse": "Нет"
+    },
+    "media_previous": {
+        "keyboard": "ctrl + win + left",
+        "mouse": "Нет"
     }
 }

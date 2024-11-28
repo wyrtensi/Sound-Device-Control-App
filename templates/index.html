@@ -249,6 +249,48 @@
         </div>
     </div>
 
+    <div class="hotkey-group">
+        <div class="hotkey-label">Play/Pause</div>
+        <div class="hotkey-inputs">
+            <div>
+                <label>Клавиатура:</label>
+                <input type="text" id="media_play_pause_keyboard" value="{{ hotkeys['media_play_pause']['keyboard'] }}" onclick="startRecording('media_play_pause', 'keyboard')" readonly>
+            </div>
+            <div>
+                <label>Мышь:</label>
+                <input type="text" id="media_play_pause_mouse" value="{{ hotkeys['media_play_pause']['mouse'] }}" onclick="startRecording('media_play_pause', 'mouse')" readonly>
+            </div>
+        </div>
+    </div>
+
+    <div class="hotkey-group">
+        <div class="hotkey-label">Next Track</div>
+        <div class="hotkey-inputs">
+            <div>
+                <label>Клавиатура:</label>
+                <input type="text" id="media_next_keyboard" value="{{ hotkeys['media_next']['keyboard'] }}" onclick="startRecording('media_next', 'keyboard')" readonly>
+            </div>
+            <div>
+                <label>Мышь:</label>
+                <input type="text" id="media_next_mouse" value="{{ hotkeys['media_next']['mouse'] }}" onclick="startRecording('media_next', 'mouse')" readonly>
+            </div>
+        </div>
+    </div>
+
+    <div class="hotkey-group">
+        <div class="hotkey-label">Previous Track</div>
+        <div class="hotkey-inputs">
+            <div>
+                <label>Клавиатура:</label>
+                <input type="text" id="media_previous_keyboard" value="{{ hotkeys['media_previous']['keyboard'] }}" onclick="startRecording('media_previous', 'keyboard')" readonly>
+            </div>
+            <div>
+                <label>Мышь:</label>
+                <input type="text" id="media_previous_mouse" value="{{ hotkeys['media_previous']['mouse'] }}" onclick="startRecording('media_previous', 'mouse')" readonly>
+            </div>
+        </div>
+    </div>
+
     <button id="save-button" onclick="saveAllSettings()">Сохранить настройки</button>
 
     <script>
@@ -310,14 +352,29 @@
             
             if (e.key === 'Escape') return;
             
-            const key = e.key.toLowerCase();
-            if (!['control', 'alt', 'shift', 'meta', 'escape'].includes(key)) {
-                currentKeys.keyboard.add(key);
-            }
+            const keyMapping = {
+                'ArrowUp': 'up',
+                'ArrowDown': 'down',
+                'ArrowLeft': 'left',
+                'ArrowRight': 'right',
+                'PageUp': 'pageup',
+                'PageDown': 'pagedown',
+                'Control': 'ctrl',
+                'Alt': 'alt',
+                'Shift': 'shift',
+                'Meta': 'win',
+                ' ': 'space'
+            };
+
             if (e.ctrlKey) currentKeys.keyboard.add('ctrl');
             if (e.altKey) currentKeys.keyboard.add('alt');
             if (e.shiftKey) currentKeys.keyboard.add('shift');
             if (e.metaKey) currentKeys.keyboard.add('win');
+            
+            const key = keyMapping[e.key] || e.key.toLowerCase();
+            if (!['control', 'alt', 'shift', 'meta', 'escape'].includes(key)) {
+                currentKeys.keyboard.add(key);
+            }
             
             updateInputDisplay();
         }
@@ -425,6 +482,18 @@
                     next_device: {
                         keyboard: document.getElementById('next_device_keyboard').value,
                         mouse: document.getElementById('next_device_mouse').value
+                    },
+                    media_play_pause: {
+                        keyboard: document.getElementById('media_play_pause_keyboard').value,
+                        mouse: document.getElementById('media_play_pause_mouse').value
+                    },
+                    media_next: {
+                        keyboard: document.getElementById('media_next_keyboard').value,
+                        mouse: document.getElementById('media_next_mouse').value
+                    },
+                    media_previous: {
+                        keyboard: document.getElementById('media_previous_keyboard').value,
+                        mouse: document.getElementById('media_previous_mouse').value
                     }
                 })
             })

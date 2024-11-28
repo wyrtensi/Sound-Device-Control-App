@@ -26,6 +26,9 @@ import webbrowser
 WM_APPCOMMAND = 0x319
 APPCOMMAND_VOLUME_UP = 0x0a
 APPCOMMAND_VOLUME_DOWN = 0x09
+APPCOMMAND_MEDIA_PLAY_PAUSE = 0x0E
+APPCOMMAND_MEDIA_NEXTTRACK = 0x0B
+APPCOMMAND_MEDIA_PREVIOUSTRACK = 0x0C
 
 # Определения для Windows Hook
 WH_MOUSE_LL = 14
@@ -59,17 +62,61 @@ SETTINGS_FILE = "settings.json"
 
 # Горячие клавиши по умолчанию
 default_hotkeys = {
-    "volume_up": "ctrl+up",
-    "volume_down": "ctrl+down",
-    "prev_device": "win+page up",
-    "next_device": "win+page down"
+    "volume_up": {
+        "keyboard": "ctrl+up",
+        "mouse": "scrollup"
+    },
+    "volume_down": {
+        "keyboard": "ctrl+down",
+        "mouse": "scrolldown"
+    },
+    "prev_device": {
+        "keyboard": "win+pageup",
+        "mouse": "Нет"
+    },
+    "next_device": {
+        "keyboard": "win+pagedown",
+        "mouse": "Нет"
+    },
+    "media_play_pause": {
+        "keyboard": "ctrl+space",
+        "mouse": "Нет"
+    },
+    "media_next": {
+        "keyboard": "ctrl+right",
+        "mouse": "Нет"
+    },
+    "media_previous": {
+        "keyboard": "ctrl+left",
+        "mouse": "Нет"
+    }
 }
 
 # Загрузка настроек
 def load_settings():
+    """Загружает настройки из файла, объединяя их с настройками по умолчанию"""
     try:
         with open('settings.json', 'r', encoding='utf-8') as f:
-            return json.load(f)
+            saved_settings = json.load(f)
+        
+        # Создаем копию настроек по умолчанию
+        settings = default_hotkeys.copy()
+        
+        # Обновляем только существующие настройки из сохраненного файла
+        for key in saved_settings:
+            if key in settings:
+                if isinstance(saved_settings[key], dict):
+                    settings[key].update(saved_settings[key])
+                else:
+                    # Преобразуем старый формат в новый
+                    settings[key] = {
+                        "keyboard": saved_settings[key],
+                        "mouse": "Нет"
+                    }
+        
+        # Сохраняем обновленные настройки
+        save_settings(settings)
+        return settings
     except FileNotFoundError:
         return default_hotkeys
     except Exception as e:
@@ -188,6 +235,11 @@ def send_volume_message(app_command):
     hwnd = ctypes.windll.user32.GetForegroundWindow()
     ctypes.windll.user32.SendMessageW(hwnd, WM_APPCOMMAND, 0, app_command * 0x10000)
 
+def send_media_message(app_command):
+    """Отправляет команду управления медиа"""
+    hwnd = ctypes.windll.user32.GetForegroundWindow()
+    ctypes.windll.user32.SendMessageW(hwnd, WM_APPCOMMAND, 0, app_command * 0x10000)
+
 # Обновление горячих клавиш для регулировки громкости
 def update_volume_hotkeys():
     # Удалим старые горячие клавиши, если они зарегистрированы
@@ -230,6 +282,21 @@ def normalize_key_name(key_str):
         'page_up': 'pageup',
         'page_down': 'pagedown',
         'нет': '',
+        'space': 'space',
+        # Стрелки
+        'up': 'up',
+        'down': 'down',
+        'left': 'left',
+        'right': 'right',
+        # Модификаторы
+        'ctrl_l': 'ctrl',
+        'ctrl_r': 'ctrl',
+        'alt_l': 'alt',
+        'alt_r': 'alt',
+        'shift_l': 'shift',
+        'shift_r': 'shift',
+        'cmd': 'win',
+        'cmd_r': 'win',
         # Кириллица -> латиница
         'ф': 'a', 'и': 'b', 'с': 'c', 'в': 'd', 'у': 'e',
         'а': 'f', 'п': 'g', 'р': 'h', 'ш': 'i', 'о': 'j',
@@ -238,7 +305,15 @@ def normalize_key_name(key_str):
         'г': 'u', 'м': 'v', 'ц': 'w', 'ч': 'x', 'н': 'y',
         'я': 'z'
     }
-    return key_mapping.get(key_str.lower(), key_str.lower())
+    
+    # Удаляем префикс 'key.' если он есть
+    if key_str.lower().startswith('key.'):
+        key_str = key_str[4:]
+    
+    # Проверяем наличие ключа в маппинге
+    normalized = key_mapping.get(key_str.lower(), key_str.lower())
+    
+    return normalized
 
 def on_key_press(key):
     with key_lock:
@@ -338,20 +413,9 @@ class KeyboardMouseTracker:
                 key_str = key.char.lower()
             else:
                 key_str = str(key).lower().replace('key.', '')
-                # Расширенный словарь специальных клавиш
-                special_keys = {
-                    'ctrl_l': 'ctrl', 
-                    'ctrl_r': 'ctrl',
-                    'alt_l': 'alt', 
-                    'alt_r': 'alt',
-                    'shift_l': 'shift', 
-                    'shift_r': 'shift',
-                    'cmd': 'win',  # Windows key (левый)
-                    'cmd_r': 'win',  # Windows key (правый)
-                    'page_up': 'pageup',
-                    'page_down': 'pagedown'
-                }
-                key_str = special_keys.get(key_str, key_str)
+            
+            # Нормализуем название клавиши
+            key_str = normalize_key_name(key_str)
             
             with self.lock:
                 self.pressed_keyboard_keys.add(key_str)
@@ -366,20 +430,9 @@ class KeyboardMouseTracker:
                 key_str = key.char.lower()
             else:
                 key_str = str(key).lower().replace('key.', '')
-                # Тот же словарь специальных клавиш
-                special_keys = {
-                    'ctrl_l': 'ctrl', 
-                    'ctrl_r': 'ctrl',
-                    'alt_l': 'alt', 
-                    'alt_r': 'alt',
-                    'shift_l': 'shift', 
-                    'shift_r': 'shift',
-                    'cmd': 'win',  # Windows key (левый)
-                    'cmd_r': 'win',  # Windows key (правый)
-                    'page_up': 'pageup',
-                    'page_down': 'pagedown'
-                }
-                key_str = special_keys.get(key_str, key_str)
+            
+            # Нормализуем название клавиши
+            key_str = normalize_key_name(key_str)
             
             with self.lock:
                 self.pressed_keyboard_keys.discard(key_str)
@@ -454,7 +507,7 @@ class KeyboardMouseTracker:
             self.mouse_thread.join(timeout=1.0)
 
     def get_state(self):
-        """Возвращает текущее состояние с кэшированием"""
+        """Возвращает текущее остояние с кэшированием"""
         current_time = time.time()
         
         # Используем кэшированное состояние, если оно достаточно свежее
@@ -498,6 +551,12 @@ def handle_hotkeys(tracker):
                         switch_audio_device('prev')
                     elif action == 'next_device':
                         switch_audio_device('next')
+                    elif action == 'media_play_pause':
+                        send_media_message(APPCOMMAND_MEDIA_PLAY_PAUSE)
+                    elif action == 'media_next':
+                        send_media_message(APPCOMMAND_MEDIA_NEXTTRACK)
+                    elif action == 'media_previous':
+                        send_media_message(APPCOMMAND_MEDIA_PREVIOUSTRACK)
                     
                     last_action_time[action] = current_time
                     
@@ -618,7 +677,7 @@ def setup_tray():
         "Audio Device Switcher",
         icon=create_icon(),
         menu=pystray.Menu(
-            pystray.MenuItem("Настройки", open_settings, default=True),
+            pystray.MenuItem("Настройи", open_settings, default=True),
             pystray.MenuItem("Выход", exit_app)
         )
     )
