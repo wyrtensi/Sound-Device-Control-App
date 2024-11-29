@@ -11,7 +11,7 @@ App features:
 5. Turn ON and OFF your microphone by pressing a hotkey. (Switching it by adjusting microphone volume from 0 to 100)
 6. Notifications for switching device, turning off microphone.
 7. Chose what devices you switch between.
-8. Intuitive interface for hotkeys assignment. 
+8. Intuitive interface for hotkeys assignment. With light theme switch.
 
 ![image](https://github.com/user-attachments/assets/02de48b0-698b-416b-8cc5-6d1eea045e8e)
 
