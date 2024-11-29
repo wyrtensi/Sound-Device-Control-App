@@ -872,27 +872,63 @@
         });
 
         // Theme switcher
-        document.getElementById('themeToggle').addEventListener('change', function() {
+        document.getElementById('themeToggle').addEventListener('change', async function() {
             document.body.classList.toggle('light-theme');
             
             // Сохраняем выбор темы
-            localStorage.setItem('theme', this.checked ? 'light' : 'dark');
+            const isLight = this.checked;
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
             
             // Отправляем событие для модального окна клавиатуры
             window.dispatchEvent(new CustomEvent('themeChange', {
-                detail: { theme: this.checked ? 'light' : 'dark' }
+                detail: { theme: isLight ? 'light' : 'dark' }
             }));
             
-            // Показываем уведомление
-            showNotification(`Theme switched to ${this.checked ? 'Light' : 'Dark'} mode`);
+            // Отправляем запрос на сервер для обновления темы уведомлений
+            try {
+                const response = await fetch('/set_theme', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        is_light: isLight
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showNotification(`Theme switched to ${isLight ? 'Light' : 'Dark'} mode`);
+                } else {
+                    showNotification('Error updating theme: ' + result.message, true);
+                }
+            } catch (error) {
+                console.error('Error updating theme:', error);
+                showNotification('Error updating theme', true);
+            }
         });
 
-        // Загружаем сохраненную тему при загрузке страницы
-        document.addEventListener('DOMContentLoaded', () => {
+        // Также обновим загрузку сохраненной темы при старте
+        document.addEventListener('DOMContentLoaded', async () => {
             const savedTheme = localStorage.getItem('theme');
             if (savedTheme === 'light') {
                 document.getElementById('themeToggle').checked = true;
                 document.body.classList.add('light-theme');
+                
+                // Отправляем запрос на сервер для синхронизации темы уведомлений
+                try {
+                    await fetch('/set_theme', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            is_light: true
+                        })
+                    });
+                } catch (error) {
+                    console.error('Error syncing theme:', error);
+                }
             }
         });
 

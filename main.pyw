@@ -16,15 +16,16 @@ import win32gui
 import win32com.client
 import pythoncom
 import mouse
-import tkinter as tk
-from tkinter import font
-import pystray
-from PIL import Image, ImageDraw, ImageTk
 import webbrowser
 import math
 import winreg
 import os
 import sys
+from datetime import datetime, timedelta
+from PIL import Image, ImageDraw
+import pystray
+import tempfile
+import win32ui
 
 # Windows constants
 WM_APPCOMMAND = 0x319
@@ -468,7 +469,7 @@ def send_media_message(app_command):
     ctypes.windll.user32.SendMessageW(hwnd, WM_APPCOMMAND, 0, app_command * 0x10000)
 
 def get_audio_devices():
-    """Получает список устройств вывода звук��"""
+    """Получает список устройств выво звука"""
     powershell_path = r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
     
     ps_script = """
@@ -551,145 +552,307 @@ def set_default_audio_device(device_index):
     except Exception as e:
         print(f"Error executing PowerShell: {e}")
 
-notification_queue = []
-notification_root = None
-current_notification = None
-
-def create_round_rectangle(width, height, radius, fill):
-    """Создает изображение со скругленными углами"""
-    image = Image.new('RGBA', (width, height), (0, 0, 0, 0))
+def create_notification_icon(icon_type='speaker', size=64):
+    """Создает красивую иконку для уведомлений"""
+    # Создаем изображение большего размера для лучшего сглаживания
+    large_size = size * 4
+    image = Image.new('RGBA', (large_size, large_size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
-    
-    draw.rounded_rectangle([(0, 0), (width-1, height-1)], radius, fill=fill)
-    return image
+    scale = large_size / 128
 
-def create_notification_window():
-    """Создает основное окно для уведомлений"""
-    global notification_root
-    notification_root = tk.Tk()
-    notification_root.withdraw()  # Скрываем основное окно
-    
-    def check_queue():
-        if notification_queue:
-            message = notification_queue.pop(0)
-            show_notification_message(message)
-        notification_root.after(100, check_queue)
-    
-    check_queue()
-    notification_root.mainloop()
+    # Рисуем градиентный круг с правильным расчетом координат
+    gradient_steps = 20
+    step_size = large_size / (2 * gradient_steps)
+    for i in range(gradient_steps):
+        alpha = int(255 * (1 - i/gradient_steps))
+        color = (0, 123, 255, alpha)
+        x0 = i * step_size
+        y0 = i * step_size
+        x1 = large_size - (i * step_size)
+        y1 = large_size - (i * step_size)
+        draw.ellipse([x0, y0, x1, y1], fill=color)
 
-def show_notification(message):
-    """Добавляет сообщение в очередь уведомлений"""
-    notification_queue.append(message)
-
-def show_notification_message(message):
-    """Показывает уведомление"""
-    global current_notification
-    
-    try:
-        # Создаем новое окно только если нет активного или оно уже не существует
-        if not current_notification or not current_notification.winfo_exists():
-            root = tk.Toplevel(notification_root)
-            current_notification = root
-        else:
-            root = current_notification
-            # Очищаем предыдущее содержимое
-            for widget in root.winfo_children():
-                widget.destroy()
+    if icon_type == 'speaker':
+        # Рисуем динамик (белый)
+        speaker_color = (255, 255, 255, 255)
         
-        root.overrideredirect(True)
-        root.attributes('-alpha', 0.0)
-        root.attributes("-topmost", True)
+        # Прямоугольник динамика
+        draw.rectangle([
+            int(35 * scale), int(44 * scale), 
+            int(55 * scale), int(84 * scale)
+        ], fill=speaker_color)
         
-        # Настройка размеров и позиции
-        screen_width = root.winfo_screenwidth()
-        screen_height = root.winfo_screenheight()
-        window_width = 300
-        window_height = 80
-        x_position = screen_width - window_width - 20
-        y_position = screen_height - window_height - 40
-        
-        root.geometry(f"{window_width}x{window_height}+{x_position}+{y_position}")
-        
-        # Создаем скругленную рамку
-        frame = tk.Frame(root, bg='#2C2C2C', highlightthickness=0)
-        frame.place(relwidth=1, relheight=1)
-        
-        # Создаем фон со скругленными углами
-        bg_image = create_round_rectangle(300, 80, 15, '#2C2C2C')
-        bg_photo = ImageTk.PhotoImage(bg_image, master=root)
-        
-        # Создаем и размещаем фоновую метку
-        bg_label = tk.Label(frame, image=bg_photo, bg='#2C2C2C')
-        bg_label.image = bg_photo
-        bg_label.place(relwidth=1, relheight=1)
-        
-        # Иконка звука
-        icon_size = 24
-        icon_image = Image.new('RGBA', (icon_size, icon_size), (0, 0, 0, 0))
-        draw = ImageDraw.Draw(icon_image)
-        
-        # Рисуем иконку звука
-        speaker_color = '#4A9EFF'
-        draw.rectangle([4, 8, 10, 16], fill=speaker_color)
-        points = [(10, 8), (16, 4), (16, 20), (10, 16)]
+        # Треугольник динамика
+        points = [
+            (int(55 * scale), int(44 * scale)),
+            (int(85 * scale), int(24 * scale)),
+            (int(85 * scale), int(104 * scale)),
+            (int(55 * scale), int(84 * scale))
+        ]
         draw.polygon(points, fill=speaker_color)
         
-        # Звуковые волны
-        for i in range(2):
-            x = 18 + i * 4
-            draw.arc([x, 6, x+6, 18], -60, 60, fill=speaker_color, width=2)
-        
-        icon_photo = ImageTk.PhotoImage(icon_image, master=root)
-        icon_label = tk.Label(frame, image=icon_photo, bg='#2C2C2C')
-        icon_label.image = icon_photo
-        icon_label.place(x=15, y=28)
-        
-        # Текст уведомления
-        custom_font = font.Font(family="Segoe UI", size=10, weight="normal")
-        label = tk.Label(frame, 
-                        text=message,
-                        font=custom_font,
-                        fg='#FFFFFF',
-                        bg='#2C2C2C',
-                        justify=tk.LEFT)
-        label.place(x=50, y=30)
-        
-        def fade_in():
-            alpha = root.attributes('-alpha')
-            if alpha < 1.0:
-                root.attributes('-alpha', alpha + 0.1)
-                root.after(20, fade_in)
-            else:
-                root.after(2000, fade_out)
-                
-        def fade_out():
-            if not root.winfo_exists():
-                return
-                
-            alpha = root.attributes('-alpha')
-            if alpha > 0:
-                root.attributes('-alpha', alpha - 0.1)
-                root.after(20, fade_out)
-            else:
-                root.destroy()
-        
-        fade_in()
-        
-    except Exception as e:
-        print(f"Error showing notification: {e}")
+        # Звуковые волны с улучшенным сглаживанием
+        wave_color = (255, 255, 255, 200)
+        for i in range(3):
+            offset = i * 15
+            # Увеличиваем толщину линии для лучшего сглаживания
+            draw.arc([
+                int((70 + offset) * scale), int((34 + offset) * scale),
+                int((100 + offset) * scale), int((94 + offset) * scale)
+            ], 300, 60, fill=wave_color, width=int(6 * scale))
 
-def run_notification_window():
-    """Запускает главный цикл Tkinter для уведомлений"""
-    root = tk.Tk()
-    root.withdraw()  # Скрываем основное окно
-    root.mainloop()
+    elif icon_type == 'microphone':
+        mic_color = (255, 255, 255, 255)
+        
+        # Основной корпус микрофона (более округлый)
+        draw.rounded_rectangle([
+            int(52 * scale), int(24 * scale),
+            int(76 * scale), int(64 * scale)
+        ], radius=int(12 * scale), fill=mic_color)
+        
+        # Нижняя часть микрофона (подставка)
+        base_width = int(40 * scale)
+        base_height = int(4 * scale)
+        base_x = int(64 * scale - base_width/2)
+        base_y = int(84 * scale)
+        
+        # Ножка микрофона
+        stand_width = int(4 * scale)
+        stand_x = int(64 * scale - stand_width/2)
+        stand_y1 = int(64 * scale)
+        stand_y2 = base_y
+        
+        # Рисуем ножку с градиентом
+        steps = 20  # Увеличиваем количество шагов для плавности
+        for i in range(steps):
+            alpha = int(255 * (1 - i/steps * 0.3))
+            current_color = (255, 255, 255, alpha)
+            current_y = stand_y1 + (stand_y2 - stand_y1) * i/steps
+            draw.rectangle([
+                stand_x, current_y,
+                stand_x + stand_width, current_y + (stand_y2 - stand_y1)/steps
+            ], fill=current_color)
+        
+        # Рисуем подставку с градиентом
+        for i in range(steps):
+            alpha = int(255 * (1 - i/steps * 0.3))
+            current_color = (255, 255, 255, alpha)
+            current_width = base_width * (1 - i/steps * 0.2)
+            current_x = int(64 * scale - current_width/2)
+            current_y = base_y + i * base_height/steps
+            draw.rounded_rectangle([
+                current_x, current_y,
+                current_x + current_width, current_y + base_height/steps
+            ], radius=int(2 * scale), fill=current_color)
+        
+        # Добавляем блики на корпусе
+        highlight_color = (255, 255, 255, 30)
+        draw.ellipse([
+            int(54 * scale), int(26 * scale),
+            int(62 * scale), int(34 * scale)
+        ], fill=highlight_color)
+        
+        # Добавляем звуковые волны с улучшенным сглаживанием
+        wave_color = (255, 255, 255, 100)
+        for i in range(3):
+            offset = i * 8
+            # Увеличиваем толщину линии для лучшего сглаживания
+            draw.arc([
+                int((44 - offset) * scale), int((34 - offset) * scale),
+                int((84 + offset) * scale), int((54 + offset) * scale)
+            ], 220, 320, fill=wave_color, width=int(4 * scale))
+
+    # Уменьшаем изображение до нужного размера с использованием высококачественного ресемплинга
+    image = image.resize((size, size), Image.Resampling.LANCZOS)
+    return image
+
+class NotificationWindow:
+    def __init__(self):
+        self.notifications = []
+        self.WINDOW_CLASS = "SoundDeviceControlNotification"
+        
+        # Цвета для темной темы
+        self.DARK_THEME = {
+            'bg': win32api.RGB(44, 44, 44),      # Темно-серый фон
+            'text': win32api.RGB(255, 255, 255),  # Белый текст
+            'accent': win32api.RGB(74, 158, 255)  # Голубой акцент
+        }
+        
+        # Цвета для светлой темы
+        self.LIGHT_THEME = {
+            'bg': win32api.RGB(240, 240, 240),    # Светло-серый фон
+            'text': win32api.RGB(0, 0, 0),        # Черный текст
+            'accent': win32api.RGB(0, 120, 215)   # Синий акцент
+        }
+        
+        # По умолчанию темная тема
+        self.current_theme = self.DARK_THEME
+
+        # Регистрируем класс окна
+        wc = win32gui.WNDCLASS()
+        wc.lpszClassName = self.WINDOW_CLASS
+        wc.lpfnWndProc = self._window_proc
+        wc.hCursor = win32gui.LoadCursor(0, win32con.IDC_ARROW)
+        wc.hbrBackground = win32gui.GetStockObject(win32con.BLACK_BRUSH)
+        wc.hInstance = win32api.GetModuleHandle(None)
+        
+        try:
+            win32gui.RegisterClass(wc)
+        except Exception as e:
+            print(f"Failed to register window class: {e}")
+
+    def _window_proc(self, hwnd, msg, wparam, lparam):
+        if msg == win32con.WM_DESTROY:
+            win32gui.PostQuitMessage(0)
+        return win32gui.DefWindowProc(hwnd, msg, wparam, lparam)
+
+    def _create_rounded_region(self, hwnd, width, height, radius):
+        """Сздает регион окна со скругленными углами"""
+        try:
+            region = win32gui.CreateRoundRectRgn(0, 0, width, height, radius, radius)
+            win32gui.SetWindowRgn(hwnd, region, True)
+        except Exception as e:
+            print(f"Error creating rounded region: {e}")
+
+    def set_theme(self, is_light):
+        """Устанавливает тему уведомлений"""
+        print(f"Setting theme to {'light' if is_light else 'dark'}")  # Отладочный вывод
+        self.current_theme = self.LIGHT_THEME if is_light else self.DARK_THEME
+
+    def show_notification(self, text, icon_type='speaker'):
+        def _show():
+            try:
+                # Создаем окно уведомления
+                width = 300
+                height = 80
+                screen_width = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
+                screen_height = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
+                x = screen_width - width - 20
+                y = screen_height - height - 40
+
+                hwnd = win32gui.CreateWindowEx(
+                    win32con.WS_EX_LAYERED | win32con.WS_EX_TOPMOST | win32con.WS_EX_TOOLWINDOW,
+                    self.WINDOW_CLASS,
+                    "Notification",
+                    win32con.WS_POPUP | win32con.WS_VISIBLE,
+                    x, y, width, height,
+                    0, 0, win32api.GetModuleHandle(None), None
+                )
+
+                # Создаем DC для рисования
+                hdc = win32gui.GetDC(hwnd)
+                memdc = win32gui.CreateCompatibleDC(hdc)
+                bitmap = win32gui.CreateCompatibleBitmap(hdc, width, height)
+                win32gui.SelectObject(memdc, bitmap)
+
+                # Заливаем фон
+                brush = win32gui.CreateSolidBrush(self.current_theme['bg'])
+                win32gui.FillRect(memdc, (0, 0, width, height), brush)
+                win32gui.DeleteObject(brush)
+
+                # Создаем иконку
+                icon_image = create_notification_icon(icon_type, size=32)
+                
+                # Сохраняем как ICO
+                icon_path = os.path.join(tempfile.gettempdir(), f'notification_icon_{icon_type}.ico')
+                # Конвертируем в ICO формат
+                icon_image.save(icon_path, format='ICO', sizes=[(32, 32)])
+                
+                # Загружаем иконку
+                icon = win32gui.LoadImage(
+                    0, icon_path, win32con.IMAGE_ICON,
+                    32, 32, win32con.LR_LOADFROMFILE
+                )
+                
+                # Рисуем иконку
+                win32gui.DrawIconEx(
+                    memdc, 15, 24,
+                    icon, 32, 32,
+                    0, None, win32con.DI_NORMAL
+                )
+                
+                # Удаляем иконку
+                win32gui.DestroyIcon(icon)
+                
+                try:
+                    os.remove(icon_path)
+                except:
+                    pass
+
+                # Рисуем текст
+                lf = win32gui.LOGFONT()
+                lf.lfFaceName = 'Segoe UI'
+                lf.lfHeight = 15
+                lf.lfWeight = win32con.FW_NORMAL
+                lf.lfQuality = win32con.DEFAULT_QUALITY
+                font = win32gui.CreateFontIndirect(lf)
+
+                win32gui.SelectObject(memdc, font)
+                win32gui.SetTextColor(memdc, self.current_theme['text'])
+                win32gui.SetBkMode(memdc, win32con.TRANSPARENT)
+                rect = (60, 0, width - 10, height)
+                win32gui.DrawText(memdc, text, -1, rect, 
+                                win32con.DT_LEFT | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
+
+                # Копируем из памяти на экран
+                win32gui.UpdateLayeredWindow(
+                    hwnd, 0,
+                    (x, y),
+                    (width, height),
+                    memdc,
+                    (0, 0),
+                    0,
+                    (win32con.AC_SRC_OVER, 0, 255, win32con.AC_SRC_ALPHA)
+                )
+
+                # Очищаем ресурсы
+                win32gui.DeleteObject(font)
+                win32gui.DeleteObject(bitmap)
+                win32gui.DeleteDC(memdc)
+                win32gui.ReleaseDC(hwnd, hdc)
+
+                # Анимация появления
+                for alpha in range(0, 255, 15):
+                    win32gui.SetLayeredWindowAttributes(hwnd, 0, alpha, win32con.LWA_ALPHA)
+                    time.sleep(0.01)
+
+                # Ждем перед исчезновением
+                time.sleep(2)
+
+                # Анимация исчезновения
+                for alpha in range(255, 0, -15):
+                    win32gui.SetLayeredWindowAttributes(hwnd, 0, alpha, win32con.LWA_ALPHA)
+                    time.sleep(0.01)
+
+                win32gui.DestroyWindow(hwnd)
+
+            except Exception as e:
+                print(f"Error showing notification: {e}")
+                import traceback
+                print(traceback.format_exc())
+
+        Thread(target=_show, daemon=True).start()
+
+# Создаем глобальный объект для уведомлений
+notification_window = NotificationWindow()
+
+# Заменяем все вызовы show_notification на:
+def show_notification(message, icon_type='speaker'):
+    notification_window.show_notification(message, icon_type)
+
+# Удаляем старый код создания окна уведомлений
+# def create_notification_window():
+#     ...
+
+# В функции main() заменяем запуск старого notification_thread на:
+# notification_thread = Thread(target=create_notification_window, daemon=True)
+# notification_thread.start()
 
 # Добавляем глобальную переменную для хранения активных устройств
 enabled_devices = set()
 
 def load_enabled_devices():
-    """Загружает список активных устройств из файла"""
+    """Загружает список активнх устройств из файла"""
     global enabled_devices
     try:
         with open('enabled_devices.json', 'r') as f:
@@ -700,7 +863,7 @@ def load_enabled_devices():
         save_enabled_devices()
 
 def save_enabled_devices():
-    """Сохраняет список активных устройств в файл"""
+    """Сохраняет список актвых устройств в файл"""
     try:
         with open('enabled_devices.json', 'w') as f:
             json.dump(list(enabled_devices), f)
@@ -760,7 +923,7 @@ def switch_audio_device(direction):
             print("No active devices")
             return
             
-        # Если текущий индекс некорректный, устанавливаем его на первое активное устройство
+        # Если текущи индекс некорректный, устанавливаем его на первое активное устройство
         if current_device_index >= len(devices) or current_device_index < 0:
             current_device_index = 0
             
@@ -771,7 +934,7 @@ def switch_audio_device(direction):
                                 active_devices[0])
             print(f"Current device: {current_device}")
             
-            # Находим индекс текущего устройства в списке активных
+            # Нахоим индекс текущего устройства в списке активных
             current_active_index = active_devices.index(current_device)
             print(f"Current active index: {current_active_index}")
             
@@ -791,7 +954,7 @@ def switch_audio_device(direction):
                                     if device[0] == next_device[0])
             print(f"New current device index: {current_device_index}")
             
-            # Устанавливаем новое устройство
+            # Устанвливаем новое устройство
             print(f"Setting default audio device to: {next_device[0]}")
             set_default_audio_device(next_device[0])
             
@@ -848,17 +1011,130 @@ def exit_app(icon, item):
     global running
     running = False
 
+# Добавляем константы для трея
+WM_USER = 0x400
+WM_TRAYICON = WM_USER + 1
+WM_RBUTTONUP = 0x0205
+WM_LBUTTONUP = 0x0202
+
+class SystemTray:
+    def __init__(self):
+        self.log("Initializing SystemTray...")
+        
+        # Создаем иконку
+        try:
+            icon_size = 64
+            image = Image.new('RGBA', (icon_size, icon_size), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(image)
+
+            # Рисуем градиентный круг
+            for i in range(20):
+                alpha = int(255 * (1 - i/20))
+                color = (0, 123, 255, alpha)
+                draw.ellipse([i, i, icon_size-i, icon_size-i], fill=color)
+
+            # Рисуем динамик (елый)
+            speaker_color = (255, 255, 255, 255)
+            scale = icon_size / 128  # Масштабируем координаты
+            
+            # Прямоугольник динамика
+            draw.rectangle([
+                int(35 * scale), int(44 * scale), 
+                int(55 * scale), int(84 * scale)
+            ], fill=speaker_color)
+            
+            # Треугльник динамика
+            points = [
+                (int(55 * scale), int(44 * scale)),
+                (int(85 * scale), int(24 * scale)),
+                (int(85 * scale), int(104 * scale)),
+                (int(55 * scale), int(84 * scale))
+            ]
+            draw.polygon(points, fill=speaker_color)
+
+            # Звуковые волны
+            wave_color = (255, 255, 255, 200)
+            draw.arc([
+                int(70 * scale), int(34 * scale),
+                int(100 * scale), int(94 * scale)
+            ], 300, 60, fill=wave_color, width=int(4 * scale))
+            draw.arc([
+                int(85 * scale), int(24 * scale),
+                int(115 * scale), int(104 * scale)
+            ], 300, 60, fill=wave_color, width=int(4 * scale))
+
+            # Цветные полоски
+            bar_colors = [(0, 255, 255, 200), (0, 255, 200, 200), (0, 200, 255, 200)]
+            bar_width = int(4 * scale)
+            for i, color in enumerate(bar_colors):
+                height = int((20 + i * 10) * scale)
+                x = int((95 + i * 8) * scale)
+                y = int(64 * scale - height//2)
+                draw.rectangle([x, y, x+bar_width, y+height], fill=color)
+
+            # Создаем меню
+            menu = (
+                pystray.MenuItem("Settings", self._open_settings),
+                pystray.MenuItem("Exit", self._exit_app)
+            )
+
+            # Создаем иконку в трее
+            self.icon = pystray.Icon(
+                "Sound Device Control App",
+                image,
+                "Sound Device Control App",
+                menu
+            )
+
+            self.log("Tray icon created successfully")
+            
+        except Exception as e:
+            self.log(f"Failed to create tray icon: {e}")
+            raise
+
+        self.running = True
+        self.log("Initialization complete")
+
+    def _open_settings(self, icon, item):
+        try:
+            self.log("Opening settings")
+            webbrowser.open('http://127.0.0.1:5000')
+        except Exception as e:
+            self.log(f"Error opening settings: {e}")
+
+    def _exit_app(self, icon, item):
+        try:
+            self.log("Exiting application")
+            global running
+            self.stop()
+            running = False
+        except Exception as e:
+            self.log(f"Error exiting: {e}")
+
+    def stop(self):
+        try:
+            if hasattr(self, 'icon'):
+                self.icon.stop()
+            self.log("Stopped")
+        except Exception as e:
+            self.log(f"Error stopping: {e}")
+
+    def run(self):
+        self.log("Starting tray icon")
+        self.icon.run()
+
+    def log(self, message):
+        """Логирование событий трея"""
+        print(f"{message}")
+
 def setup_tray():
-    """Sets up the tray icon"""
-    icon = pystray.Icon(
-        "Sound Device Control App",
-        icon=create_icon(),
-        menu=pystray.Menu(
-            pystray.MenuItem("Settings", open_settings, default=True),
-            pystray.MenuItem("Exit", exit_app)
-        )
-    )
-    return icon
+    """Sets up the system tray icon"""
+    return SystemTray()
+
+def exit_app(icon):
+    global running
+    running = False
+    icon.stop()
 
 @app.route("/")
 def index():
@@ -962,7 +1238,7 @@ def load_enabled_input_devices():
         with open('enabled_input_devices.json', 'r') as f:
             enabled_input_devices = set(json.load(f))
     except FileNotFoundError:
-        # Если файл не существует, все устройства активны по умолчанию
+        # Еси файл не существует, все устройства активны по умолчанию
         enabled_input_devices = set(device[0] for device in input_devices)
         save_enabled_input_devices()
 
@@ -1076,13 +1352,13 @@ def switch_input_device(direction):
         print(f"Enabled input devices: {enabled_input_devices}")
         
         if not input_devices:
-            # Обновляем список устройств, если он пуст
+            # Обновляем список устройст, если он пуст
             input_devices = get_input_devices()
             if not input_devices:
                 print("No input devices available")
                 return
             
-        # Получаем список активных устройств
+        # Получам список активных устройств
         active_devices = [device for device in input_devices if device[0] in enabled_input_devices]
         print(f"Active input devices: {active_devices}")
         
@@ -1097,7 +1373,7 @@ def switch_input_device(direction):
                                 active_devices[0])
             print(f"Current input device: {current_device}")
             
-            # Находим индекс текущего устройства в списке активных
+            # Находим индекс текущего устройсва в списке активных
             current_active_index = active_devices.index(current_device)
             print(f"Current active index: {current_active_index}")
             
@@ -1121,8 +1397,9 @@ def switch_input_device(direction):
             print(f"Setting default input device to: {next_device[0]}")
             set_default_input_device(next_device[0])
             
-            # Показываем уведомление
-            Thread(target=show_notification, args=(f"Input switched to: {next_device[1]}",)).start()
+            # Показываем уведоление
+            print("Calling show_notification")
+            show_notification(f"Input switched to: {next_device[1]}", 'microphone')
             
         except Exception as e:
             print(f"Error during input device switching: {e}")
@@ -1131,7 +1408,7 @@ def switch_input_device(direction):
         print(f"Error switching input device: {e}")
 
 def set_default_input_device(device_index):
-    """Устанавливает устройство ввода по умолчанию"""
+    """Устанавливает устройство ввода по уолчанию"""
     ps_script = f"""
     try {{
         Set-AudioDevice -Index {device_index}
@@ -1173,11 +1450,11 @@ def toggle_microphone_volume():
         if volume.GetMute():
             volume.SetMute(0, None)
             volume.SetMasterVolumeLevelScalar(1.0, None)
-            Thread(target=show_notification, args=("Microphone: ON",)).start()
+            Thread(target=show_notification, args=("Microphone: ON", 'microphone')).start()
         else:
             volume.SetMute(1, None)
             volume.SetMasterVolumeLevelScalar(0.0, None)
-            Thread(target=show_notification, args=("Microphone: OFF",)).start()
+            Thread(target=show_notification, args=("Microphone: OFF", 'microphone')).start()
     except:
         pass
     finally:
@@ -1185,7 +1462,7 @@ def toggle_microphone_volume():
 
 @app.route("/get_output_devices")
 def get_output_devices():
-    """Возвращает список устройств вывода звука"""
+    """Возвращает список устройсв вывоа звука"""
     try:
         devices = get_audio_devices()
         return jsonify({
@@ -1232,7 +1509,7 @@ devices = []
 current_device_index = 0
 running = False
 
-# Добавляем глобальные переменные для устройств ввода
+# Добавляем глобальные переменны для устройств ввода
 input_devices = []
 current_input_device_index = 0
 
@@ -1356,6 +1633,19 @@ def set_autostart_route():
             "message": str(e)
         })
 
+@app.route("/set_theme", methods=["POST"])
+def set_theme():
+    try:
+        data = request.json
+        is_light = data.get("is_light", False)
+        notification_window.set_theme(is_light)
+        return jsonify({"status": "success"})
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        })
+
 def main():
     global running, devices, input_devices, current_device_index, current_input_device_index
     running = True
@@ -1370,7 +1660,7 @@ def main():
     devices = get_audio_devices()
     input_devices = get_input_devices()
     
-    # Загружаем списки активных устройств
+    # Загружаем списки ктивных устройств
     load_enabled_devices()
     load_enabled_input_devices()
     
@@ -1396,14 +1686,10 @@ def main():
     hotkey_thread.start()
     print("Hotkey handler started")
 
-    tray_icon = setup_tray()
-    tray_thread = Thread(target=lambda: tray_icon.run(), daemon=True)
+    tray = setup_tray()
+    tray_thread = Thread(target=lambda: tray.run(), daemon=True)
     tray_thread.start()
     print("Tray icon started")
-
-    # Запускаем поток для уведомлений
-    notification_thread = Thread(target=create_notification_window, daemon=True)
-    notification_thread.start()
     
     try:
         while running:
@@ -1411,9 +1697,8 @@ def main():
     except KeyboardInterrupt:
         print("\nStopping...")
     finally:
+        tray.stop()
         tracker.stop()
-        if hasattr(tray_icon, '_icon') and tray_icon._icon:
-            tray_icon.stop()
 
 if __name__ == "__main__":
     main()
