@@ -1,4 +1,24 @@
 {
+    "next_device": {
+        "keyboard": "win+pageup",
+        "mouse": "None"
+    },
+    "prev_device": {
+        "keyboard": "win+pagedown",
+        "mouse": "None"
+    },
+    "next_input_device": {
+        "keyboard": "None",
+        "mouse": "None"
+    },
+    "prev_input_device": {
+        "keyboard": "ctrl+m",
+        "mouse": "None"
+    },
+    "toggle_mic_volume": {
+        "keyboard": "None",
+        "mouse": "None"
+    },
     "volume_up": {
         "keyboard": "win",
         "mouse": "scrollup"
@@ -6,14 +26,6 @@
     "volume_down": {
         "keyboard": "win",
         "mouse": "scrolldown"
-    },
-    "prev_device": {
-        "keyboard": "win+pagedown",
-        "mouse": "None"
-    },
-    "next_device": {
-        "keyboard": "win+pageup",
-        "mouse": "None"
     },
     "media_play_pause": {
         "keyboard": "win+ctrl+down",
@@ -25,18 +37,6 @@
     },
     "media_previous": {
         "keyboard": "win+ctrl+left",
-        "mouse": "None"
-    },
-    "prev_input_device": {
-        "keyboard": "ctrl+m",
-        "mouse": "None"
-    },
-    "next_input_device": {
-        "keyboard": "None",
-        "mouse": "None"
-    },
-    "toggle_mic_volume": {
-        "keyboard": "None",
         "mouse": "None"
     }
 }

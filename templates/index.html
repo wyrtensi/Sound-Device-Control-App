@@ -214,65 +214,318 @@
             font-size: 0.9em;
             margin-left: 10px;
         }
+
+        .device-section {
+            margin-bottom: 40px;
+            padding: 25px;
+            background: rgba(40, 40, 40, 0.6);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+
+        .device-section h2 {
+            margin-top: 0;
+            margin-bottom: 25px;
+            color: #4A9EFF;
+            font-size: 1.8em;
+            font-weight: 500;
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .device-section h2::after {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(90deg, #4A9EFF, #00c3ff);
+            margin: 10px auto 0;
+            border-radius: 2px;
+        }
+
+        .device-control-group {
+            margin-bottom: 25px;
+            padding: 20px;
+            background-color: rgba(51, 51, 51, 0.5);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: transform 0.2s ease;
+        }
+
+        .device-control-group:hover {
+            transform: translateY(-2px);
+        }
+
+        .hotkey-group {
+            margin-bottom: 15px;
+            padding: 15px;
+            background-color: rgba(51, 51, 51, 0.5);
+            border-radius: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .hotkey-group:hover {
+            background-color: rgba(60, 60, 60, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .hotkey-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .media-section {
+            margin-top: 40px;
+            padding: 25px;
+            background: rgba(40, 40, 40, 0.6);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .media-section h2 {
+            color: #00c3ff;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .save-button-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        .save-button {
+            display: inline-block;
+            min-width: 200px;
+            padding: 15px 30px;
+            background: linear-gradient(90deg, #007bff, #00c3ff);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+            text-align: center;
+        }
+
+        .save-button:hover {
+            background: linear-gradient(90deg, #0056b3, #0099ff);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+        }
+
+        .save-button:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 10px rgba(0, 123, 255, 0.3);
+        }
+
+        .device-control-group h3 {
+            color: #fff;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            font-weight: 500;
+        }
+
+        .devices-list {
+            background: rgba(30, 30, 30, 0.5);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .device-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background-color: rgba(68, 68, 68, 0.5);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .device-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .device-item:hover {
+            background-color: rgba(80, 80, 80, 0.5);
+            transform: translateX(5px);
+        }
+
+        .device-checkbox {
+            margin-right: 12px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .device-name {
+            color: #fff;
+            font-size: 1em;
+            flex-grow: 1;
+            cursor: pointer;
+            padding: 5px;
+            user-select: none;
+        }
+
+        .device-name:hover {
+            color: #4A9EFF;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Sound Device Control App</h1>
         
-        <!-- Добавляем блок управления устройствами -->
-        <div class="device-control-group">
-            <h2>Output Devices</h2>
-            <div id="outputDevicesList" class="devices-list">
-                <!-- Устройства будут добавлены через JavaScript -->
-            </div>
-        </div>
-
-        <!-- Добавляем блок управления устройствами ввода -->
-        <div class="device-control-group">
-            <h2>Input Devices</h2>
-            <div id="inputDevicesList" class="devices-list">
-                <!-- Устройства будут добавлены через JavaScript -->
-            </div>
-        </div>
-        
         <form id="hotkeyForm">
-            {% for action, combo in hotkeys.items() %}
-            <div class="hotkey-group">
-                <label class="hotkey-label">
-                    {% if action == "volume_up" %}
-                    Volume Up
-                    {% elif action == "volume_down" %}
-                    Volume Down
-                    {% elif action == "prev_device" %}
-                    Previous Output Device
-                    {% elif action == "next_device" %}
-                    Next Output Device
-                    {% elif action == "prev_input_device" %}
-                    Previous Input Device
-                    {% elif action == "next_input_device" %}
-                    Next Input Device
-                    {% elif action == "toggle_mic_volume" %}
-                    Toggle Microphone Volume
-                    {% elif action == "media_play_pause" %}
-                    Play/Pause
-                    {% elif action == "media_next" %}
-                    Next Track
-                    {% elif action == "media_previous" %}
-                    Previous Track
-                    {% endif %}
-                </label>
-                <input type="text" 
-                       class="hotkey-input" 
-                       data-action="{{ action }}" 
-                       data-keyboard="{{ combo.keyboard }}"
-                       data-mouse="{{ combo.mouse }}"
-                       value="{{ combo.keyboard if combo.keyboard != 'None' }}{{ '+' if combo.keyboard != 'None' and combo.mouse != 'None' }}{{ combo.mouse if combo.mouse != 'None' }}"
-                       readonly>
+            <!-- Output Devices Section -->
+            <div class="device-section">
+                <h2>Output Devices Control</h2>
+                <div class="device-control-group">
+                    <h3>Output Devices</h3>
+                    <div id="outputDevicesList" class="devices-list">
+                        <!-- Устройства будут добавлены через JavaScript -->
+                    </div>
+                </div>
+
+                <div class="hotkey-group">
+                    <label class="hotkey-label">Next Output Device</label>
+                    <input type="text" 
+                           class="hotkey-input" 
+                           data-action="next_device" 
+                           data-keyboard="{{ hotkeys.next_device.keyboard }}"
+                           data-mouse="{{ hotkeys.next_device.mouse }}"
+                           value="{{ hotkeys.next_device.keyboard if hotkeys.next_device.keyboard != 'None' }}{{ '+' if hotkeys.next_device.keyboard != 'None' and hotkeys.next_device.mouse != 'None' }}{{ hotkeys.next_device.mouse if hotkeys.next_device.mouse != 'None' }}"
+                           readonly>
+                </div>
+
+                <div class="hotkey-group">
+                    <label class="hotkey-label">Previous Output Device</label>
+                    <input type="text" 
+                           class="hotkey-input" 
+                           data-action="prev_device" 
+                           data-keyboard="{{ hotkeys.prev_device.keyboard }}"
+                           data-mouse="{{ hotkeys.prev_device.mouse }}"
+                           value="{{ hotkeys.prev_device.keyboard if hotkeys.prev_device.keyboard != 'None' }}{{ '+' if hotkeys.prev_device.keyboard != 'None' and hotkeys.prev_device.mouse != 'None' }}{{ hotkeys.prev_device.mouse if hotkeys.prev_device.mouse != 'None' }}"
+                           readonly>
+                </div>
             </div>
-            {% endfor %}
-            
-            <button type="submit" class="save-button">Save Settings</button>
+
+            <!-- Input Devices Section -->
+            <div class="device-section">
+                <h2>Input Devices Control</h2>
+                <div class="device-control-group">
+                    <h3>Input Devices</h3>
+                    <div id="inputDevicesList" class="devices-list">
+                        <!-- Устройства будут добавлены через JavaScript -->
+                    </div>
+                </div>
+
+                <div class="hotkey-group">
+                    <label class="hotkey-label">Next Input Device</label>
+                    <input type="text" 
+                           class="hotkey-input" 
+                           data-action="next_input_device" 
+                           data-keyboard="{{ hotkeys.next_input_device.keyboard }}"
+                           data-mouse="{{ hotkeys.next_input_device.mouse }}"
+                           value="{{ hotkeys.next_input_device.keyboard if hotkeys.next_input_device.keyboard != 'None' }}{{ '+' if hotkeys.next_input_device.keyboard != 'None' and hotkeys.next_input_device.mouse != 'None' }}{{ hotkeys.next_input_device.mouse if hotkeys.next_input_device.mouse != 'None' }}"
+                           readonly>
+                </div>
+
+                <div class="hotkey-group">
+                    <label class="hotkey-label">Previous Input Device</label>
+                    <input type="text" 
+                           class="hotkey-input" 
+                           data-action="prev_input_device" 
+                           data-keyboard="{{ hotkeys.prev_input_device.keyboard }}"
+                           data-mouse="{{ hotkeys.prev_input_device.mouse }}"
+                           value="{{ hotkeys.prev_input_device.keyboard if hotkeys.prev_input_device.keyboard != 'None' }}{{ '+' if hotkeys.prev_input_device.keyboard != 'None' and hotkeys.prev_input_device.mouse != 'None' }}{{ hotkeys.prev_input_device.mouse if hotkeys.prev_input_device.mouse != 'None' }}"
+                           readonly>
+                </div>
+
+                <div class="hotkey-group">
+                    <label class="hotkey-label">Toggle Microphone Volume</label>
+                    <input type="text" 
+                           class="hotkey-input" 
+                           data-action="toggle_mic_volume" 
+                           data-keyboard="{{ hotkeys.toggle_mic_volume.keyboard }}"
+                           data-mouse="{{ hotkeys.toggle_mic_volume.mouse }}"
+                           value="{{ hotkeys.toggle_mic_volume.keyboard if hotkeys.toggle_mic_volume.keyboard != 'None' }}{{ '+' if hotkeys.toggle_mic_volume.keyboard != 'None' and hotkeys.toggle_mic_volume.mouse != 'None' }}{{ hotkeys.toggle_mic_volume.mouse if hotkeys.toggle_mic_volume.mouse != 'None' }}"
+                           readonly>
+                </div>
+            </div>
+
+            <!-- Media Control Section -->
+            <div class="device-section">
+                <h2>Media Control</h2>
+                <div class="hotkey-group">
+                    <label class="hotkey-label">Volume Up</label>
+                    <input type="text" 
+                           class="hotkey-input" 
+                           data-action="volume_up" 
+                           data-keyboard="{{ hotkeys.volume_up.keyboard }}"
+                           data-mouse="{{ hotkeys.volume_up.mouse }}"
+                           value="{{ hotkeys.volume_up.keyboard if hotkeys.volume_up.keyboard != 'None' }}{{ '+' if hotkeys.volume_up.keyboard != 'None' and hotkeys.volume_up.mouse != 'None' }}{{ hotkeys.volume_up.mouse if hotkeys.volume_up.mouse != 'None' }}"
+                           readonly>
+                </div>
+
+                <div class="hotkey-group">
+                    <label class="hotkey-label">Volume Down</label>
+                    <input type="text" 
+                           class="hotkey-input" 
+                           data-action="volume_down" 
+                           data-keyboard="{{ hotkeys.volume_down.keyboard }}"
+                           data-mouse="{{ hotkeys.volume_down.mouse }}"
+                           value="{{ hotkeys.volume_down.keyboard if hotkeys.volume_down.keyboard != 'None' }}{{ '+' if hotkeys.volume_down.keyboard != 'None' and hotkeys.volume_down.mouse != 'None' }}{{ hotkeys.volume_down.mouse if hotkeys.volume_down.mouse != 'None' }}"
+                           readonly>
+                </div>
+
+                <div class="hotkey-group">
+                    <label class="hotkey-label">Play/Pause</label>
+                    <input type="text" 
+                           class="hotkey-input" 
+                           data-action="media_play_pause" 
+                           data-keyboard="{{ hotkeys.media_play_pause.keyboard }}"
+                           data-mouse="{{ hotkeys.media_play_pause.mouse }}"
+                           value="{{ hotkeys.media_play_pause.keyboard if hotkeys.media_play_pause.keyboard != 'None' }}{{ '+' if hotkeys.media_play_pause.keyboard != 'None' and hotkeys.media_play_pause.mouse != 'None' }}{{ hotkeys.media_play_pause.mouse if hotkeys.media_play_pause.mouse != 'None' }}"
+                           readonly>
+                </div>
+
+                <div class="hotkey-group">
+                    <label class="hotkey-label">Next Track</label>
+                    <input type="text" 
+                           class="hotkey-input" 
+                           data-action="media_next" 
+                           data-keyboard="{{ hotkeys.media_next.keyboard }}"
+                           data-mouse="{{ hotkeys.media_next.mouse }}"
+                           value="{{ hotkeys.media_next.keyboard if hotkeys.media_next.keyboard != 'None' }}{{ '+' if hotkeys.media_next.keyboard != 'None' and hotkeys.media_next.mouse != 'None' }}{{ hotkeys.media_next.mouse if hotkeys.media_next.mouse != 'None' }}"
+                           readonly>
+                </div>
+
+                <div class="hotkey-group">
+                    <label class="hotkey-label">Previous Track</label>
+                    <input type="text" 
+                           class="hotkey-input" 
+                           data-action="media_previous" 
+                           data-keyboard="{{ hotkeys.media_previous.keyboard }}"
+                           data-mouse="{{ hotkeys.media_previous.mouse }}"
+                           value="{{ hotkeys.media_previous.keyboard if hotkeys.media_previous.keyboard != 'None' }}{{ '+' if hotkeys.media_previous.keyboard != 'None' and hotkeys.media_previous.mouse != 'None' }}{{ hotkeys.media_previous.mouse if hotkeys.media_previous.mouse != 'None' }}"
+                           readonly>
+                </div>
+            </div>
+
+            <div class="save-button-container">
+                <button type="submit" class="save-button">Save Settings</button>
+            </div>
         </form>
     </div>
 
@@ -333,6 +586,12 @@
         // Добавляем функции для работы с устройствами
         async function loadOutputDevices() {
             try {
+                // Сначала получаем список активных устройств
+                const enabledResponse = await fetch('/get_enabled_devices');
+                const enabledResult = await enabledResponse.json();
+                const enabledDevices = enabledResult.enabled_devices || [];
+
+                // Затем получаем список всех устройств
                 const response = await fetch('/get_output_devices');
                 const result = await response.json();
                 
@@ -348,7 +607,9 @@
                         deviceElement.innerHTML = `
                             <input type="checkbox" class="device-checkbox" 
                                    id="device-${index}"
-                                   data-device-index="${index}" checked>
+                                   data-device-index="${index}"
+                                   data-device-type="output"
+                                   ${enabledDevices.includes(index) ? 'checked' : ''}>
                             <label class="device-name" for="device-${index}">${name}</label>
                         `;
                         
@@ -356,7 +617,7 @@
                     });
                     
                     // Добавляем обработчики для чекбоксов
-                    document.querySelectorAll('.device-checkbox').forEach(checkbox => {
+                    document.querySelectorAll('.device-checkbox[data-device-type="output"]').forEach(checkbox => {
                         checkbox.addEventListener('change', async (e) => {
                             const deviceIndex = e.target.getAttribute('data-device-index');
                             const enabled = e.target.checked;
@@ -394,6 +655,12 @@
 
         async function loadInputDevices() {
             try {
+                // Сначала получаем список активных устройств
+                const enabledResponse = await fetch('/get_enabled_input_devices');
+                const enabledResult = await enabledResponse.json();
+                const enabledDevices = enabledResult.enabled_devices || [];
+
+                // Затем получаем список всех устройств
                 const response = await fetch('/get_input_devices');
                 const result = await response.json();
                 
@@ -409,8 +676,9 @@
                         deviceElement.innerHTML = `
                             <input type="checkbox" class="device-checkbox" 
                                    id="input-device-${index}"
-                                   data-device-index="${index}" 
-                                   data-device-type="input" checked>
+                                   data-device-index="${index}"
+                                   data-device-type="input"
+                                   ${enabledDevices.includes(index) ? 'checked' : ''}>
                             <label class="device-name" for="input-device-${index}">${name}</label>
                         `;
                         
@@ -459,7 +727,7 @@
             await loadInputDevices();
         }
 
-        // Обновляем загрузку устройств при загрузке страницы
+        // Загружаем устройства при загрузке страницы
         document.addEventListener('DOMContentLoaded', () => {
             loadDevices();
         });

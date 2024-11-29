@@ -120,8 +120,28 @@ class KeyboardMouseTracker:
 
     def _on_key_press(self, key):
         try:
-            if isinstance(key, keyboard.KeyCode) and key.char is not None:
-                key_str = key.char.lower()
+            if isinstance(key, keyboard.KeyCode):
+                if key.char is not None:
+                    key_str = key.char.lower()
+                else:
+                    # Обработка специальных символов по vk коду
+                    vk = key.vk if hasattr(key, 'vk') else None
+                    if vk:
+                        key_str = {
+                            191: '/',  # Слеш
+                            220: '\\', # Обратный слеш
+                            188: ',',  # Запятая
+                            190: '.',  # Точка
+                            186: ';',  # Точка с запятой
+                            222: "'",  # Кавычка
+                            219: '[',  # Открывающая скобка
+                            221: ']',  # Закрывающая скобка
+                            189: '-',  # Минус
+                            187: '=',  # Равно
+                            192: '`',  # Обратный апостроф
+                        }.get(vk, str(key).lower().replace('key.', ''))
+                    else:
+                        key_str = str(key).lower().replace('key.', '')
             else:
                 key_str = str(key).lower().replace('key.', '')
             
@@ -135,8 +155,28 @@ class KeyboardMouseTracker:
 
     def _on_key_release(self, key):
         try:
-            if isinstance(key, keyboard.KeyCode) and key.char is not None:
-                key_str = key.char.lower()
+            if isinstance(key, keyboard.KeyCode):
+                if key.char is not None:
+                    key_str = key.char.lower()
+                else:
+                    # Обработка специальных символов по vk коду
+                    vk = key.vk if hasattr(key, 'vk') else None
+                    if vk:
+                        key_str = {
+                            191: '/',  # Слеш
+                            220: '\\', # Обратный слеш
+                            188: ',',  # Запятая
+                            190: '.',  # Точка
+                            186: ';',  # Точка с запятой
+                            222: "'",  # Кавычка
+                            219: '[',  # Открывающая скобка
+                            221: ']',  # Закрывающая скобка
+                            189: '-',  # Минус
+                            187: '=',  # Равно
+                            192: '`',  # Обратный апостроф
+                        }.get(vk, str(key).lower().replace('key.', ''))
+                    else:
+                        key_str = str(key).lower().replace('key.', '')
             else:
                 key_str = str(key).lower().replace('key.', '')
             
@@ -260,6 +300,18 @@ def normalize_key_name(key_str):
         'lmb': 'mouseleft',
         'rmb': 'mouseright',
         'mmb': 'mousemiddle',
+        # Special characters
+        '/': '/',
+        '\\': '\\',
+        ',': ',',
+        '.': '.',
+        ';': ';',
+        "'": "'",
+        '[': '[',
+        ']': ']',
+        '-': '-',
+        '=': '=',
+        '`': '`',
         # Fix for control characters
         '\x01': 'a',  # Ctrl+A
         '\x02': 'b',  # Ctrl+B
@@ -290,32 +342,15 @@ def normalize_key_name(key_str):
         '\r': 'm',    # Enter key
         '\n': 'n',    # Newline
         '\t': 'tab',  # Tab key
-        # Letters
+        # Letters and numbers
         'a': 'a', 'b': 'b', 'c': 'c', 'd': 'd', 'e': 'e',
         'f': 'f', 'g': 'g', 'h': 'h', 'i': 'i', 'j': 'j',
         'k': 'k', 'l': 'l', 'm': 'm', 'n': 'n', 'o': 'o',
         'p': 'p', 'q': 'q', 'r': 'r', 's': 's', 't': 't',
         'u': 'u', 'v': 'v', 'w': 'w', 'x': 'x', 'y': 'y',
         'z': 'z',
-        # Cyrillic to Latin mapping
-        'й': 'q', 'ц': 'w', 'у': 'e', 'к': 'r', 'е': 't',
-        'н': 'y', 'г': 'u', 'ш': 'i', 'щ': 'o', 'з': 'p',
-        'х': '[', 'ъ': ']', 'ф': 'a', 'ы': 's', 'в': 'd',
-        'а': 'f', 'п': 'g', 'р': 'h', 'о': 'j', 'л': 'k',
-        'д': 'l', 'ж': ';', 'э': "'", 'я': 'z', 'ч': 'x',
-        'с': 'c', 'м': 'v', 'и': 'b', 'т': 'n', 'ь': 'm',
-        'б': ',', 'ю': '.',
-        # Additional Cyrillic letters
-        'ё': 'e',
-        # Cyrillic uppercase
-        'Й': 'q', 'Ц': 'w', 'У': 'e', 'К': 'r', 'Е': 't',
-        'Н': 'y', 'Г': 'u', 'Ш': 'i', 'Щ': 'o', 'З': 'p',
-        'Х': '[', 'Ъ': ']', 'Ф': 'a', 'Ы': 's', 'В': 'd',
-        'А': 'f', 'П': 'g', 'Р': 'h', 'О': 'j', 'Л': 'k',
-        'Д': 'l', 'Ж': ';', 'Э': "'", 'Я': 'z', 'Ч': 'x',
-        'С': 'c', 'М': 'v', 'И': 'b', 'Т': 'n', 'Ь': 'm',
-        'Б': ',', 'Ю': '.',
-        'Ё': 'e'
+        '0': '0', '1': '1', '2': '2', '3': '3', '4': '4',
+        '5': '5', '6': '6', '7': '7', '8': '8', '9': '9',
     }
     
     # Remove 'key.' prefix if it exists
@@ -377,18 +412,31 @@ def check_hotkey_combination(hotkey, state):
             hotkey['mouse'].lower() == 'none'):
             return False
 
-        keyboard_keys = set(k.strip().lower() for k in hotkey['keyboard'].split('+') 
-                          if k.strip() and k.strip().lower() != 'none')
-        
+        # Разделяем комбинации клавиш
+        keyboard_keys = set()
+        for k in hotkey['keyboard'].split('+'):
+            k = k.strip().lower()
+            if k and k != 'none':
+                keyboard_keys.add(k)
+
         mouse_keys = set(m.strip().lower() for m in hotkey['mouse'].split('+') 
                         if m.strip() and m.strip().lower() != 'none')
 
         if not keyboard_keys and not mouse_keys:
             return False
 
+        # Получаем текущие нажатые клавиши
+        current_keys = state['keyboard']
+
+        # Проверяем, что все необходимые клавиши нажаты
         keyboard_match = True
         if keyboard_keys:
-            keyboard_match = all(key in state['keyboard'] for key in keyboard_keys)
+            # Проверяем, что количество нажатых клавиш совпадает
+            if len(keyboard_keys) != len(current_keys):
+                return False
+            
+            # Проверяем, что все необходимые клавиши нажаты
+            keyboard_match = all(key in current_keys for key in keyboard_keys)
             if not keyboard_match:
                 return False
 
@@ -404,7 +452,8 @@ def check_hotkey_combination(hotkey, state):
 
         return True
 
-    except:
+    except Exception as e:
+        print(f"Error in check_hotkey_combination: {e}")
         return False
 
 def send_volume_message(app_command):
@@ -1183,6 +1232,34 @@ running = False
 # Добавляем глобальные переменные для устройств ввода
 input_devices = []
 current_input_device_index = 0
+
+@app.route("/get_enabled_devices")
+def get_enabled_devices():
+    """Возвращает список активных устройств вывода"""
+    try:
+        return jsonify({
+            "status": "success",
+            "enabled_devices": list(enabled_devices)
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        })
+
+@app.route("/get_enabled_input_devices")
+def get_enabled_input_devices():
+    """Возвращает список активных устройств ввода"""
+    try:
+        return jsonify({
+            "status": "success",
+            "enabled_devices": list(enabled_input_devices)
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        })
 
 def main():
     global running, devices, input_devices, current_device_index, current_input_device_index
