@@ -22,6 +22,9 @@ import pystray
 from PIL import Image, ImageDraw, ImageTk
 import webbrowser
 import math
+import winreg
+import os
+import sys
 
 # Windows constants
 WM_APPCOMMAND = 0x319
@@ -465,7 +468,7 @@ def send_media_message(app_command):
     ctypes.windll.user32.SendMessageW(hwnd, WM_APPCOMMAND, 0, app_command * 0x10000)
 
 def get_audio_devices():
-    """Получает список устройств вывода звука"""
+    """Получает список устройств вывода звук��"""
     powershell_path = r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
     
     ps_script = """
@@ -1254,6 +1257,98 @@ def get_enabled_input_devices():
         return jsonify({
             "status": "success",
             "enabled_devices": list(enabled_input_devices)
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        })
+
+def get_autostart_status():
+    """Проверяет, добавлено ли приложение в автозагрузку"""
+    try:
+        key = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Microsoft\Windows\CurrentVersion\Run",
+            0,
+            winreg.KEY_READ
+        )
+        try:
+            value, _ = winreg.QueryValueEx(key, "SoundDeviceControl")
+            return True
+        except WindowsError:
+            return False
+        finally:
+            winreg.CloseKey(key)
+    except WindowsError:
+        return False
+
+def set_autostart(enable):
+    """Включает или выключает автозагрузку приложения"""
+    try:
+        key = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Microsoft\Windows\CurrentVersion\Run",
+            0,
+            winreg.KEY_SET_VALUE | winreg.KEY_READ
+        )
+        
+        if enable:
+            app_path = sys.argv[0]
+            if app_path.endswith('.py'):
+                # Для Python скрипта
+                winreg.SetValueEx(
+                    key,
+                    "SoundDeviceControl",
+                    0,
+                    winreg.REG_SZ,
+                    f'pythonw "{os.path.abspath(app_path)}"'
+                )
+            else:
+                # Для exe файла
+                winreg.SetValueEx(
+                    key,
+                    "SoundDeviceControl",
+                    0,
+                    winreg.REG_SZ,
+                    os.path.abspath(app_path)
+                )
+        else:
+            try:
+                winreg.DeleteValue(key, "SoundDeviceControl")
+            except WindowsError:
+                pass
+        
+        winreg.CloseKey(key)
+        return True
+    except Exception as e:
+        print(f"Error setting autostart: {e}")
+        return False
+
+@app.route("/get_autostart")
+def get_autostart():
+    """Возвращает статус автозагрузки"""
+    try:
+        return jsonify({
+            "status": "success",
+            "autostart": get_autostart_status()
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        })
+
+@app.route("/set_autostart", methods=["POST"])
+def set_autostart_route():
+    """Устанавливает статус автозагрузки"""
+    try:
+        data = request.json
+        enable = data.get("enable", False)
+        
+        success = set_autostart(enable)
+        return jsonify({
+            "status": "success" if success else "error"
         })
     except Exception as e:
         return jsonify({
