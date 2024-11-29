@@ -1,172 +1,186 @@
-<div id="keyboardModal" class="modal">
-    <div class="modal-content">
-        <div class="input-devices">
-            <!-- Keyboard -->
+<div id="keyboardModal" class="keyboard-modal">
+    <div class="keyboard-modal-content">
+        <div class="keyboard-modal-body">
+            <div class="section-title">Keyboard</div>
             <div class="keyboard-container">
-                <h3>Keyboard</h3>
-                <!-- Function keys -->
-                <div class="keyboard-row">
-                    <div class="key" data-key="Esc">Esc</div>
-                    <div class="key" data-key="F1">F1</div>
-                    <div class="key" data-key="F2">F2</div>
-                    <div class="key" data-key="F3">F3</div>
-                    <div class="key" data-key="F4">F4</div>
-                    <div class="key" data-key="F5">F5</div>
-                    <div class="key" data-key="F6">F6</div>
-                    <div class="key" data-key="F7">F7</div>
-                    <div class="key" data-key="F8">F8</div>
-                    <div class="key" data-key="F9">F9</div>
-                    <div class="key" data-key="F10">F10</div>
-                    <div class="key" data-key="F11">F11</div>
-                    <div class="key" data-key="F12">F12</div>
-                </div>
-
-                <!-- Additional function keys -->
-                <div class="keyboard-row">
-                    <div class="key" data-key="PrintScreen">PrtSc</div>
-                    <div class="key" data-key="ScrollLock">ScrLk</div>
-                    <div class="key" data-key="Pause">Pause</div>
-                    <div class="key" data-key="Insert">Ins</div>
-                    <div class="key" data-key="Home">Home</div>
-                    <div class="key" data-key="PageUp">PgUp</div>
-                    <div class="key" data-key="Delete">Del</div>
-                    <div class="key" data-key="End">End</div>
-                    <div class="key" data-key="PageDown">PgDn</div>
-                </div>
-
-                <!-- Main keys -->
-                <div class="keyboard-row">
-                    <div class="key" data-key="`">~<br>`</div>
-                    <div class="key" data-key="1">!<br>1</div>
-                    <div class="key" data-key="2">@<br>2</div>
-                    <div class="key" data-key="3">#<br>3</div>
-                    <div class="key" data-key="4">$<br>4</div>
-                    <div class="key" data-key="5">%<br>5</div>
-                    <div class="key" data-key="6">^<br>6</div>
-                    <div class="key" data-key="7">&<br>7</div>
-                    <div class="key" data-key="8">*<br>8</div>
-                    <div class="key" data-key="9">(<br>9</div>
-                    <div class="key" data-key="0">)<br>0</div>
-                    <div class="key" data-key="-">_<br>-</div>
-                    <div class="key" data-key="=">=<br>+</div>
-                    <div class="key backspace" data-key="Backspace">Backspace</div>
-                </div>
-
-                <div class="keyboard-row">
-                    <div class="key tab" data-key="Tab">Tab</div>
-                    <div class="key" data-key="q">Q</div>
-                    <div class="key" data-key="w">W</div>
-                    <div class="key" data-key="e">E</div>
-                    <div class="key" data-key="r">R</div>
-                    <div class="key" data-key="t">T</div>
-                    <div class="key" data-key="y">Y</div>
-                    <div class="key" data-key="u">U</div>
-                    <div class="key" data-key="i">I</div>
-                    <div class="key" data-key="o">O</div>
-                    <div class="key" data-key="p">P</div>
-                    <div class="key" data-key="[">{<br>[</div>
-                    <div class="key" data-key="]">}<br>]</div>
-                    <div class="key" data-key="\"">|<br>\</div>
-                </div>
-
-                <div class="keyboard-row">
-                    <div class="key caps" data-key="CapsLock">Caps</div>
-                    <div class="key" data-key="a">A</div>
-                    <div class="key" data-key="s">S</div>
-                    <div class="key" data-key="d">D</div>
-                    <div class="key" data-key="f">F</div>
-                    <div class="key" data-key="g">G</div>
-                    <div class="key" data-key="h">H</div>
-                    <div class="key" data-key="j">J</div>
-                    <div class="key" data-key="k">K</div>
-                    <div class="key" data-key="l">L</div>
-                    <div class="key" data-key=";">:<br>;</div>
-                    <div class="key" data-key="'">"<br>'</div>
-                    <div class="key enter" data-key="Enter">Enter</div>
-                </div>
-
-                <div class="keyboard-row">
-                    <div class="key shift" data-key="Shift">Shift</div>
-                    <div class="key" data-key="z">Z</div>
-                    <div class="key" data-key="x">X</div>
-                    <div class="key" data-key="c">C</div>
-                    <div class="key" data-key="v">V</div>
-                    <div class="key" data-key="b">B</div>
-                    <div class="key" data-key="n">N</div>
-                    <div class="key" data-key="m">M</div>
-                    <div class="key" data-key=",">&lt;<br>,</div>
-                    <div class="key" data-key=".">><br>.</div>
-                    <div class="key" data-key="/">?<br>/</div>
-                    <div class="key shift" data-key="Shift">Shift</div>
-                </div>
-
-                <div class="keyboard-row">
-                    <div class="key ctrl" data-key="Ctrl">Ctrl</div>
-                    <div class="key win" data-key="Win">Win</div>
-                    <div class="key alt" data-key="Alt">Alt</div>
-                    <div class="key space" data-key="Space">Space</div>
-                    <div class="key alt" data-key="Alt">Alt</div>
-                    <div class="key win" data-key="Win">Win</div>
-                    <div class="key menu" data-key="Menu">Menu</div>
-                    <div class="key ctrl" data-key="Ctrl">Ctrl</div>
-                </div>
-
-                <div class="keyboard-row arrow-keys">
-                    <div class="arrow-top">
-                        <div class="key" data-key="ArrowUp">↑</div>
-                    </div>
-                    <div class="arrow-bottom">
-                        <div class="key" data-key="ArrowLeft">←</div>
-                        <div class="key" data-key="ArrowDown">↓</div>
-                        <div class="key" data-key="ArrowRight">→</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Mouse -->
-            <div class="mouse-container">
-                <h3>Mouse</h3>
-                <div class="mouse-body">
-                    <div class="mouse-buttons">
-                        <div class="key mouse-button" data-key="MouseLeft">LMB</div>
-                        <div class="mouse-wheel">
-                            <div class="key wheel-up" data-key="ScrollUp">↑</div>
-                            <div class="key mouse-button" data-key="MouseMiddle">MMB</div>
-                            <div class="key wheel-down" data-key="ScrollDown">↓</div>
+                <div class="main-section">
+                    <!-- Function keys row -->
+                    <div class="function-keys">
+                        <div class="f-keys-group">
+                            <div class="key" data-key="Esc">Esc</div>
                         </div>
-                        <div class="key mouse-button" data-key="MouseRight">RMB</div>
+                        <div class="f-keys-group">
+                            <div class="key" data-key="F1">F1</div>
+                            <div class="key" data-key="F2">F2</div>
+                            <div class="key" data-key="F3">F3</div>
+                            <div class="key" data-key="F4">F4</div>
+                        </div>
+                        <div class="f-keys-group">
+                            <div class="key" data-key="F5">F5</div>
+                            <div class="key" data-key="F6">F6</div>
+                            <div class="key" data-key="F7">F7</div>
+                            <div class="key" data-key="F8">F8</div>
+                        </div>
+                        <div class="f-keys-group">
+                            <div class="key" data-key="F9">F9</div>
+                            <div class="key" data-key="F10">F10</div>
+                            <div class="key" data-key="F11">F11</div>
+                            <div class="key" data-key="F12">F12</div>
+                        </div>
+                    </div>
+
+                    <div class="main-keyboard">
+                        <!-- Number row -->
+                        <div class="keyboard-row">
+                            <div class="key" data-key="`">~<br>`</div>
+                            <div class="key" data-key="1">!<br>1</div>
+                            <div class="key" data-key="2">@<br>2</div>
+                            <div class="key" data-key="3">#<br>3</div>
+                            <div class="key" data-key="4">$<br>4</div>
+                            <div class="key" data-key="5">%<br>5</div>
+                            <div class="key" data-key="6">^<br>6</div>
+                            <div class="key" data-key="7">&<br>7</div>
+                            <div class="key" data-key="8">*<br>8</div>
+                            <div class="key" data-key="9">(<br>9</div>
+                            <div class="key" data-key="0">)<br>0</div>
+                            <div class="key" data-key="-">_<br>-</div>
+                            <div class="key" data-key="=">=<br>+</div>
+                            <div class="key backspace" data-key="Backspace">Backspace</div>
+                        </div>
+
+                        <!-- QWERTY row -->
+                        <div class="keyboard-row">
+                            <div class="key tab" data-key="Tab">Tab</div>
+                            <div class="key" data-key="q">Q</div>
+                            <div class="key" data-key="w">W</div>
+                            <div class="key" data-key="e">E</div>
+                            <div class="key" data-key="r">R</div>
+                            <div class="key" data-key="t">T</div>
+                            <div class="key" data-key="y">Y</div>
+                            <div class="key" data-key="u">U</div>
+                            <div class="key" data-key="i">I</div>
+                            <div class="key" data-key="o">O</div>
+                            <div class="key" data-key="p">P</div>
+                            <div class="key" data-key="[">{<br>[</div>
+                            <div class="key" data-key="]">}<br>]</div>
+                            <div class="key" data-key="\"">|<br>\</div>
+                        </div>
+
+                        <!-- ASDF row -->
+                        <div class="keyboard-row">
+                            <div class="key caps" data-key="CapsLock">Caps</div>
+                            <div class="key" data-key="a">A</div>
+                            <div class="key" data-key="s">S</div>
+                            <div class="key" data-key="d">D</div>
+                            <div class="key" data-key="f">F</div>
+                            <div class="key" data-key="g">G</div>
+                            <div class="key" data-key="h">H</div>
+                            <div class="key" data-key="j">J</div>
+                            <div class="key" data-key="k">K</div>
+                            <div class="key" data-key="l">L</div>
+                            <div class="key" data-key=";">:<br>;</div>
+                            <div class="key" data-key="'">"<br>'</div>
+                            <div class="key enter" data-key="Enter">Enter</div>
+                        </div>
+
+                        <!-- ZXCV row -->
+                        <div class="keyboard-row">
+                            <div class="key shift" data-key="Shift">Shift</div>
+                            <div class="key" data-key="z">Z</div>
+                            <div class="key" data-key="x">X</div>
+                            <div class="key" data-key="c">C</div>
+                            <div class="key" data-key="v">V</div>
+                            <div class="key" data-key="b">B</div>
+                            <div class="key" data-key="n">N</div>
+                            <div class="key" data-key="m">M</div>
+                            <div class="key" data-key=",">&lt;<br>,</div>
+                            <div class="key" data-key=".">><br>.</div>
+                            <div class="key" data-key="/">?<br>/</div>
+                            <div class="key shift" data-key="Shift">Shift</div>
+                        </div>
+
+                        <!-- Space row -->
+                        <div class="keyboard-row">
+                            <div class="key ctrl" data-key="Ctrl">Ctrl</div>
+                            <div class="key win" data-key="Win">Win</div>
+                            <div class="key alt" data-key="Alt">Alt</div>
+                            <div class="key space" data-key="Space">Space</div>
+                            <div class="key alt" data-key="Alt">Alt</div>
+                            <div class="key win" data-key="Win">Win</div>
+                            <div class="key menu" data-key="Menu">Menu</div>
+                            <div class="key ctrl" data-key="Ctrl">Ctrl</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="navigation-section">
+                    <!-- Print Screen, Scroll Lock, Pause -->
+                    <div class="navigation-keys top-row">
+                        <div class="key" data-key="PrintScreen">PrtSc</div>
+                        <div class="key" data-key="ScrollLock">ScrLk</div>
+                        <div class="key" data-key="Pause">Pause</div>
+                    </div>
+
+                    <!-- Navigation keys -->
+                    <div class="navigation-keys">
+                        <div class="key" data-key="Insert">Ins</div>
+                        <div class="key" data-key="Home">Home</div>
+                        <div class="key" data-key="PageUp">PgUp</div>
+                        <div class="key" data-key="Delete">Del</div>
+                        <div class="key" data-key="End">End</div>
+                        <div class="key" data-key="PageDown">PgDn</div>
+                    </div>
+
+                    <!-- Arrow keys -->
+                    <div class="arrow-keys">
+                        <div class="arrow-row">
+                            <div class="key" data-key="ArrowUp">↑</div>
+                        </div>
+                        <div class="arrow-row">
+                            <div class="key" data-key="ArrowLeft">←</div>
+                            <div class="key" data-key="ArrowDown">↓</div>
+                            <div class="key" data-key="ArrowRight">→</div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Numpad -->
-                <div class="numpad-container">
-                    <h3>Numpad</h3>
-                    <div class="numpad-body">
-                        <div class="keyboard-row">
-                            <div class="key" data-key="/">/</div>
-                            <div class="key" data-key="*">*</div>
-                            <div class="key" data-key="-">-</div>
-                            <div class="key" data-key="+">+</div>
+                <div class="numpad">
+                    <div class="key" data-key="NumLock">Num</div>
+                    <div class="key" data-key="NumpadDivide">/</div>
+                    <div class="key" data-key="NumpadMultiply">*</div>
+                    <div class="key" data-key="NumpadSubtract">-</div>
+                    <div class="key" data-key="Numpad7">7</div>
+                    <div class="key" data-key="Numpad8">8</div>
+                    <div class="key" data-key="Numpad9">9</div>
+                    <div class="key numpad-plus" data-key="NumpadAdd">+</div>
+                    <div class="key" data-key="Numpad4">4</div>
+                    <div class="key" data-key="Numpad5">5</div>
+                    <div class="key" data-key="Numpad6">6</div>
+                    <div class="key" data-key="Numpad1">1</div>
+                    <div class="key" data-key="Numpad2">2</div>
+                    <div class="key" data-key="Numpad3">3</div>
+                    <div class="key numpad-enter" data-key="NumpadEnter">Enter</div>
+                    <div class="key numpad-zero" data-key="Numpad0">0</div>
+                    <div class="key" data-key="NumpadDecimal">.</div>
+                </div>
+            </div>
+
+            <div class="mouse-section">
+                <div class="mouse-buttons">
+                    <div class="mouse-group-container">
+                        <div class="section-title">Mouse</div>
+                        <div class="mouse-group">
+                            <div class="key mouse-key" data-key="MouseLeft">Left Mouse<br>Button</div>
+                            <div class="key mouse-key" data-key="MouseMiddle">Middle Mouse<br>Button</div>
+                            <div class="key mouse-key" data-key="MouseRight">Right Mouse<br>Button</div>
                         </div>
-                        <div class="keyboard-row">
-                            <div class="key" data-key="7">7</div>
-                            <div class="key" data-key="8">8</div>
-                            <div class="key" data-key="9">9</div>
-                            <div class="key" data-key="Enter">Enter</div>
-                        </div>
-                        <div class="keyboard-row">
-                            <div class="key" data-key="4">4</div>
-                            <div class="key" data-key="5">5</div>
-                            <div class="key" data-key="6">6</div>
-                        </div>
-                        <div class="keyboard-row">
-                            <div class="key" data-key="1">1</div>
-                            <div class="key" data-key="2">2</div>
-                            <div class="key" data-key="3">3</div>
-                        </div>
-                        <div class="keyboard-row">
-                            <div class="key numpad-zero" data-key="0">0</div>
-                            <div class="key" data-key=".">.</div>
+                    </div>
+                    <div class="mouse-group-container">
+                        <div class="section-title">Mouse wheel</div>
+                        <div class="mouse-group">
+                            <div class="key mouse-key" data-key="ScrollUp">Scroll<br>Up</div>
+                            <div class="key mouse-key" data-key="ScrollDown">Scroll<br>Down</div>
                         </div>
                     </div>
                 </div>
@@ -180,4 +194,470 @@
             <button id="clearHotkey" class="btn btn-danger">Clear</button>
         </div>
     </div>
-</div> 
+</div>
+
+<style>
+    .keyboard-modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.85);
+        backdrop-filter: blur(8px);
+    }
+
+    .keyboard-modal-content {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(45, 45, 45, 0.7);
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .keyboard-container {
+        padding: 25px;
+        display: flex;
+        gap: 25px;
+        background: rgba(40, 40, 40, 0.6);
+        border-radius: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    }
+
+    .main-section {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .function-keys {
+        display: flex;
+        gap: 2px;
+        margin-bottom: 20px;
+        padding-left: 2px;
+    }
+
+    /* Группы F-клавиш */
+    .f-keys-group {
+        display: flex;
+        gap: 2px;
+    }
+
+    /* Отступы между группами */
+    .f-keys-group + .f-keys-group {
+        margin-left: 20px;
+    }
+
+    .navigation-section {
+        display: flex;
+        flex-direction: column;
+        margin-left: 20px;
+        margin-top: 0;
+    }
+
+    .navigation-keys.top-row {
+        margin-bottom: 20px;
+    }
+
+    .navigation-keys {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(2, 1fr);
+        gap: 2px;
+    }
+
+    /* Обновляем стили для стрелок */
+    .arrow-keys {
+        margin-top: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .arrow-row {
+        display: flex;
+        justify-content: center;
+        gap: 2px;
+    }
+
+    /* Первый ряд (верхняя стрелка) */
+    .arrow-row:first-child {
+        margin-bottom: 2px;
+    }
+
+    /* Второй ряд (три стрелки в ряд) */
+    .arrow-row:last-child {
+        display: flex;
+        gap: 0;
+    }
+
+    /* Скрываем пустые ячейки */
+    .arrow-keys .key:empty {
+        visibility: hidden;
+    }
+
+    /* Стили для numpad */
+    .numpad {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 2px;
+        margin-left: 20px;
+    }
+
+    /* Убираем абсолютное позиционирование */
+    .numpad {
+        position: static;
+    }
+
+    /* Размеры клавиш */
+    .key {
+        --key-size: 45px;
+        background: linear-gradient(145deg, #3a3a3a, #2d2d2d);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        color: #fff;
+        padding: 8px;
+        margin: 2px;
+        min-width: var(--key-size);
+        height: var(--key-size);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.2s ease;
+        font-size: calc(var(--key-size) * 0.32);
+        font-weight: 500;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .key:hover {
+        background: linear-gradient(145deg, #424242, #383838);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .key:active, .key.active {
+        background: linear-gradient(145deg, #4A9EFF, #3d84d5);
+        transform: translateY(1px);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Специальные размеры клавиш */
+    .key.backspace { min-width: calc(var(--key-size) * 2); }
+    .key.tab { min-width: calc(var(--key-size) * 1.5); }
+    .key.caps { min-width: calc(var(--key-size) * 1.75); }
+    .key.enter { min-width: calc(var(--key-size) * 2.25); }
+    .key.shift { min-width: calc(var(--key-size) * 2.25); }
+    .key.ctrl, .key.win, .key.alt { min-width: calc(var(--key-size) * 1.25); }
+    .key.space { min-width: calc(var(--key-size) * 6.25); }
+
+    .key.numpad-plus {
+        height: calc(var(--key-size) * 2 + 20px);
+        grid-row: span 2;
+    }
+
+    .key.numpad-enter {
+        height: calc(var(--key-size) * 2 + 20px);
+        grid-row: span 2;
+    }
+
+    .key.numpad-zero {
+        grid-column: span 2;
+    }
+
+    /* Медиа-запросы для масштабирования */
+    @media (max-width: 1400px) {
+        .key { --key-size: 40px; }
+        .keyboard-container { gap: 20px; }
+        .mouse-buttons { gap: 100px; }
+    }
+
+    @media (max-width: 1200px) {
+        .key { 
+            --key-size: 35px;
+            border-radius: 6px;
+            font-size: calc(var(--key-size) * 0.35);
+        }
+        .keyboard-container { gap: 15px; }
+        .mouse-buttons { gap: 80px; }
+        .f-keys-group + .f-keys-group { margin-left: 15px; }
+    }
+
+    @media (max-width: 1000px) {
+        .key { 
+            --key-size: 30px;
+            padding: 4px;
+            margin: 1px;
+            font-size: calc(var(--key-size) * 0.4);
+        }
+        .keyboard-container { 
+            gap: 10px;
+            padding: 15px;
+        }
+        .mouse-buttons { 
+            gap: 60px;
+            padding: 15px;
+        }
+        .f-keys-group + .f-keys-group { margin-left: 10px; }
+        .navigation-section { margin-left: 10px; }
+        .numpad { margin-left: 10px; }
+        
+        .mouse-key {
+            min-width: calc(var(--key-size) * 1.3);
+            font-size: calc(var(--key-size) * 0.35);
+        }
+    }
+
+    @media (max-width: 800px) {
+        .keyboard-modal-content {
+            transform: translate(-50%, -50%) scale(0.9);
+            padding: 15px;
+        }
+        
+        .key { 
+            --key-size: 25px;
+            padding: 2px;
+            margin: 1px;
+            border-radius: 3px;
+            font-size: calc(var(--key-size) * 0.45);
+        }
+        
+        .keyboard-container { 
+            gap: 8px;
+            padding: 10px;
+        }
+        
+        .mouse-buttons { 
+            gap: 40px;
+            padding: 10px;
+        }
+        
+        .f-keys-group + .f-keys-group { margin-left: 8px; }
+        .navigation-section { margin-left: 8px; }
+        .numpad { margin-left: 8px; }
+        
+        .section-title {
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .control-buttons {
+            padding: 10px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            font-size: 12px;
+            min-width: 80px;
+        }
+    }
+
+    /* Добавляем новый брейкпоинт для очень маленьких экранов */
+    @media (max-width: 720px) {
+        .keyboard-modal-content {
+            transform: translate(-50%, -50%) scale(0.8);
+        }
+        
+        .key { 
+            --key-size: 22px;
+            font-size: calc(var(--key-size) * 0.5);
+        }
+        
+        .keyboard-container { 
+            gap: 5px;
+            padding: 8px;
+        }
+        
+        .mouse-buttons { 
+            gap: 30px;
+            padding: 8px;
+        }
+        
+        .mouse-key {
+            min-width: calc(var(--key-size) * 1.2);
+        }
+        
+        .f-keys-group + .f-keys-group { margin-left: 5px; }
+        .navigation-section { margin-left: 5px; }
+        .numpad { margin-left: 5px; }
+    }
+
+    /* Control buttons */
+    .control-buttons {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(180deg, rgba(15, 15, 15, 0.95) 0%, rgba(10, 10, 10, 0.98) 100%);
+        padding: 15px;
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        backdrop-filter: blur(10px);
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        z-index: 1001;
+    }
+
+    .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        min-width: 100px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-primary { 
+        background: linear-gradient(145deg, #4A9EFF, #3d84d5);
+        color: #fff;
+    }
+
+    .btn-secondary { 
+        background: linear-gradient(145deg, #666, #555);
+        color: #fff;
+    }
+
+    .btn-danger { 
+        background: linear-gradient(145deg, #dc3545, #c42f3d);
+        color: #fff;
+    }
+
+    .btn:hover {
+        filter: brightness(1.1);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .f-keys-spacer {
+        width: 140px; /* Ширина равна примерно трем клавишам + отступам */
+    }
+
+    /* Стили для клавиш мыши */
+    .mouse-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 150px;
+        padding: 20px;
+        background: rgba(20, 20, 20, 0.5);
+        border-radius: 15px;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+        margin-bottom: 30px;
+    }
+
+    .mouse-group {
+        display: flex;
+        gap: 2px; /* Такой же отступ как между клавишами клавиатуры */
+    }
+
+    .mouse-key {
+        background: linear-gradient(145deg, #3a3a3a, #2d2d2d);
+        min-width: calc(var(--key-size) * 1.5);
+        font-size: calc(var(--key-size) * 0.28);
+        letter-spacing: 0.5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .mouse-key:hover {
+        background: linear-gradient(145deg, #424242, #383838);
+    }
+
+    .mouse-key:active, .mouse-key.active {
+        background: linear-gradient(145deg, #4A9EFF, #3d84d5);
+    }
+
+    /* Обновляем стили для заголовков */
+    .section-title {
+        color: #4A9EFF;
+        font-size: 1.8em;
+        font-weight: 500;
+        text-align: center;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        margin-bottom: 25px;
+    }
+
+    .section-title::after {
+        content: '';
+        display: block;
+        width: 60px;
+        height: 3px;
+        background: linear-gradient(90deg, #4A9EFF, #00c3ff);
+        margin: 10px auto 0;
+        border-radius: 2px;
+    }
+
+    .control-buttons {
+        margin-top: 30px;
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+    }
+
+    .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        min-width: 100px;
+    }
+
+    .btn-primary {
+        background: linear-gradient(90deg, #007bff, #00c3ff);
+        color: #fff;
+        box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+    }
+
+    .btn-primary:hover {
+        background: linear-gradient(90deg, #0056b3, #0099ff);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+    }
+
+    .btn-secondary {
+        background: linear-gradient(90deg, #666, #555);
+        color: #fff;
+        box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+    }
+
+    .btn-secondary:hover {
+        background: linear-gradient(90deg, #555, #444);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
+    }
+
+    .btn-danger {
+        background: linear-gradient(90deg, #dc3545, #c82333);
+        color: #fff;
+        box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+    }
+
+    .btn-danger:hover {
+        background: linear-gradient(90deg, #c82333, #bd2130);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(220, 53, 69, 0.4);
+    }
+
+    .btn:active {
+        transform: translateY(1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+</style> 
