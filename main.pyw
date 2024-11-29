@@ -426,39 +426,47 @@ def get_audio_devices():
     }
     
     try {
+        $OutputEncoding = [Console]::OutputEncoding = [Text.Encoding]::UTF8
         $devices = Get-AudioDevice -List | Where-Object { $_.Type -eq 'Playback' }
-        $devices | ForEach-Object { "$($_.Index),$($_.Name)" }
+        Write-Host "Found devices:"
+        $devices | ForEach-Object {
+            Write-Host ("Device: Index={0}, Name={1}" -f $_.Index, $_.Name)
+            Write-Output ("DEVICE:{0}|{1}" -f $_.Index, $_.Name)
+        }
     } catch {
-        Write-Host "Error getting output device list"
+        Write-Host "Error getting output device list: $_"
     }
     """
     
     try:
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        
         result = subprocess.run(
             [powershell_path, "-Command", ps_script],
             capture_output=True,
             text=True,
-            creationflags=subprocess.CREATE_NO_WINDOW
+            encoding='cp866',
+            creationflags=subprocess.CREATE_NO_WINDOW,
+            startupinfo=startupinfo
         )
         
-        if "ERROR: AudioDeviceCmdlets not installed" in result.stdout:
-            print("AudioDeviceCmdlets module needs to be installed. Installing...")
-            install_script = """
-            Install-Module -Name AudioDeviceCmdlets -Force -Scope CurrentUser
-            """
-            subprocess.run(
-                [powershell_path, "-Command", install_script],
-                creationflags=subprocess.CREATE_NO_WINDOW
-            )
-            result = subprocess.run(
-                [powershell_path, "-Command", ps_script],
-                capture_output=True,
-                text=True,
-                creationflags=subprocess.CREATE_NO_WINDOW
-            )
+        print("PowerShell output:", result.stdout)
+        if result.stderr:
+            print("PowerShell error:", result.stderr)
         
-        devices = result.stdout.strip().split('\n')
-        devices = [device.split(',') for device in devices if device.strip()]
+        devices = []
+        for line in result.stdout.split('\n'):
+            if line.strip().startswith('DEVICE:'):
+                try:
+                    _, device_info = line.strip().split('DEVICE:', 1)
+                    index, name = device_info.split('|', 1)
+                    devices.append([index.strip(), name.strip()])
+                except ValueError as e:
+                    print(f"Error parsing line '{line}': {e}")
+                    continue
+        
+        print(f"Found devices: {devices}")
         return devices
         
     except Exception as e:
@@ -475,16 +483,19 @@ def set_default_audio_device(device_index):
     """
     
     try:
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        
         result = subprocess.run(
             [r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", "-Command", ps_script],
             capture_output=True,
             text=True,
-            creationflags=subprocess.CREATE_NO_WINDOW
+            encoding='cp866',
+            creationflags=subprocess.CREATE_NO_WINDOW,
+            startupinfo=startupinfo
         )
         if result.stderr:
-            print(f"PowerShell error: {result.stderr}")
-        if result.stdout:
-            print(f"PowerShell output: {result.stdout}")
+            print("PowerShell error:", result.stderr)
     except Exception as e:
         print(f"Error executing PowerShell: {e}")
 
@@ -622,22 +633,126 @@ def run_notification_window():
     root.withdraw()  # Скрываем основное окно
     root.mainloop()
 
-def switch_audio_device(direction):
-    global current_device_index, devices
+# Добавляем глобальную переменную для хранения активных устройств
+enabled_devices = set()
+
+def load_enabled_devices():
+    """Загружает список активных устройств из файла"""
+    global enabled_devices
     try:
+        with open('enabled_devices.json', 'r') as f:
+            enabled_devices = set(json.load(f))
+    except FileNotFoundError:
+        # Если файл не существует, все устройства активны по умолчанию
+        enabled_devices = set(device[0] for device in devices)
+        save_enabled_devices()
+
+def save_enabled_devices():
+    """Сохраняет список активных устройств в файл"""
+    try:
+        with open('enabled_devices.json', 'w') as f:
+            json.dump(list(enabled_devices), f)
+    except Exception as e:
+        print(f"Error saving enabled devices: {e}")
+
+@app.route("/set_device_enabled", methods=["POST"])
+def set_device_enabled():
+    """Включает/выключает устройство в списке активных"""
+    try:
+        data = request.json
+        device_index = data.get("device_index")
+        enabled = data.get("enabled", True)
+        
+        if enabled:
+            enabled_devices.add(device_index)
+        else:
+            enabled_devices.discard(device_index)
+        
+        save_enabled_devices()
+        
+        return jsonify({
+            "status": "success"
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        })
+
+def switch_audio_device(direction):
+    """Переключает устройство вывода звука"""
+    global current_device_index, devices, enabled_devices
+    try:
+        print(f"\nSwitching device {direction}")
+        print(f"Current device index: {current_device_index}")
+        print(f"All devices: {devices}")
+        print(f"Enabled devices: {enabled_devices}")
+        
         if not devices:
+            # Обновляем список устройств, если он пуст
+            devices = get_audio_devices()
+            if not devices:
+                print("No devices available")
+                return
+        
+        # Если enabled_devices пуст, добавляем все устройства
+        if not enabled_devices:
+            enabled_devices.update(device[0] for device in devices)
+            save_enabled_devices()
+            
+        # Получаем список активных устройств
+        active_devices = [device for device in devices if device[0] in enabled_devices]
+        print(f"Active devices: {active_devices}")
+        
+        if not active_devices:
+            print("No active devices")
             return
             
-        if direction == 'prev':
-            current_device_index = (current_device_index - 1) % len(devices)
-        else:
-            current_device_index = (current_device_index + 1) % len(devices)
-        
-        device_index = devices[current_device_index][0]
-        set_default_audio_device(device_index)
-        
-        device_name = devices[current_device_index][1]
-        Thread(target=show_notification, args=(f"Switched to: {device_name}",)).start()
+        # Если текущий индекс некорректный, устанавливаем его на первое активное устройство
+        if current_device_index >= len(devices) or current_device_index < 0:
+            current_device_index = 0
+            
+        # Находим текущее устройство в списке активных
+        try:
+            current_device = next((device for device in active_devices 
+                                if device[0] == devices[current_device_index][0]), 
+                                active_devices[0])
+            print(f"Current device: {current_device}")
+            
+            # Находим индекс текущего устройства в списке активных
+            current_active_index = active_devices.index(current_device)
+            print(f"Current active index: {current_active_index}")
+            
+            # Определяем следующее устройство
+            if direction == 'prev':
+                next_active_index = (current_active_index - 1) % len(active_devices)
+            else:
+                next_active_index = (current_active_index + 1) % len(active_devices)
+            print(f"Next active index: {next_active_index}")
+            
+            # Получаем следующее устройство
+            next_device = active_devices[next_active_index]
+            print(f"Next device: {next_device}")
+            
+            # Обновляем текущий индекс в общем списке устройств
+            current_device_index = next(i for i, device in enumerate(devices) 
+                                    if device[0] == next_device[0])
+            print(f"New current device index: {current_device_index}")
+            
+            # Устанавливаем новое устройство
+            print(f"Setting default audio device to: {next_device[0]}")
+            set_default_audio_device(next_device[0])
+            
+            # Показываем уведомление
+            Thread(target=show_notification, args=(f"Switched to: {next_device[1]}",)).start()
+            
+        except Exception as e:
+            print(f"Error during device switching: {e}")
+            # Если произошла ошибка, пробуем установить первое активное устройство
+            if active_devices:
+                current_device_index = next(i for i, device in enumerate(devices) 
+                                        if device[0] == active_devices[0][0])
+                set_default_audio_device(active_devices[0][0])
         
     except Exception as e:
         print(f"Error switching device: {e}")
@@ -785,6 +900,290 @@ def update_hotkey():
 def run_flask():
     app.run(host='127.0.0.1', port=5000, debug=False)
 
+# Добавлем глобальные переменные для устройств ввода
+enabled_input_devices = set()
+
+def load_enabled_input_devices():
+    """Загружает список активных устройств ввода из файла"""
+    global enabled_input_devices
+    try:
+        with open('enabled_input_devices.json', 'r') as f:
+            enabled_input_devices = set(json.load(f))
+    except FileNotFoundError:
+        # Если файл не существует, все устройства активны по умолчанию
+        enabled_input_devices = set(device[0] for device in input_devices)
+        save_enabled_input_devices()
+
+def save_enabled_input_devices():
+    """Сохраняет список активных устройств ввода в файл"""
+    try:
+        with open('enabled_input_devices.json', 'w') as f:
+            json.dump(list(enabled_input_devices), f)
+    except Exception as e:
+        print(f"Error saving enabled input devices: {e}")
+
+@app.route("/get_input_devices")
+def get_input_devices_route():
+    """Возвращает список устройств ввода"""
+    try:
+        devices = get_input_devices()
+        return jsonify({
+            "status": "success",
+            "devices": devices
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        })
+
+@app.route("/set_input_device_enabled", methods=["POST"])
+def set_input_device_enabled():
+    """Включает/выключает устройство ввода в списке активных"""
+    try:
+        data = request.json
+        device_index = data.get("device_index")
+        enabled = data.get("enabled", True)
+        
+        if enabled:
+            enabled_input_devices.add(device_index)
+        else:
+            enabled_input_devices.discard(device_index)
+        
+        save_enabled_input_devices()
+        
+        return jsonify({
+            "status": "success"
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        })
+
+def get_input_devices():
+    """Получает список устройств ввода звука"""
+    powershell_path = r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
+    
+    ps_script = """
+    if (-not (Get-Module -ListAvailable -Name AudioDeviceCmdlets)) {
+        Write-Host "ERROR: AudioDeviceCmdlets not installed"
+        exit 1
+    }
+    
+    try {
+        $OutputEncoding = [Console]::OutputEncoding = [Text.Encoding]::UTF8
+        $devices = Get-AudioDevice -List | Where-Object { $_.Type -eq 'Recording' }
+        $devices | ForEach-Object {
+            $index = $_.Index
+            $name = $_.Name
+            Write-Output "$index|$name"
+        }
+    } catch {
+        Write-Host "Error getting input device list: $_"
+    }
+    """
+    
+    try:
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        
+        result = subprocess.run(
+            [powershell_path, "-Command", ps_script],
+            capture_output=True,
+            text=True,
+            encoding='cp866',
+            creationflags=subprocess.CREATE_NO_WINDOW,
+            startupinfo=startupinfo
+        )
+        
+        devices = []
+        for line in result.stdout.split('\n'):
+            if '|' in line:
+                try:
+                    index, name = line.strip().split('|', 1)
+                    devices.append([index.strip(), name.strip()])
+                except ValueError as e:
+                    print(f"Error parsing line '{line}': {e}")
+                    continue
+        
+        print(f"Found input devices: {devices}")
+        return devices
+        
+    except Exception as e:
+        print(f"Error getting input devices: {e}")
+        return []
+
+def switch_input_device(direction):
+    """Переключает устройство ввода звука"""
+    global current_input_device_index, input_devices, enabled_input_devices
+    try:
+        print(f"\nSwitching input device {direction}")
+        print(f"Current input device index: {current_input_device_index}")
+        print(f"All input devices: {input_devices}")
+        print(f"Enabled input devices: {enabled_input_devices}")
+        
+        if not input_devices:
+            # Обновляем список устройств, если он пуст
+            input_devices = get_input_devices()
+            if not input_devices:
+                print("No input devices available")
+                return
+            
+        # Получаем список активных устройств
+        active_devices = [device for device in input_devices if device[0] in enabled_input_devices]
+        print(f"Active input devices: {active_devices}")
+        
+        if not active_devices:
+            print("No active input devices")
+            return
+            
+        # Находим текущее устройство в списке активных
+        try:
+            current_device = next((device for device in active_devices 
+                                if device[0] == input_devices[current_input_device_index][0]), 
+                                active_devices[0])
+            print(f"Current input device: {current_device}")
+            
+            # Находим индекс текущего устройства в списке активных
+            current_active_index = active_devices.index(current_device)
+            print(f"Current active index: {current_active_index}")
+            
+            # Определяем следующее устройство
+            if direction == 'prev':
+                next_active_index = (current_active_index - 1) % len(active_devices)
+            else:
+                next_active_index = (current_active_index + 1) % len(active_devices)
+            print(f"Next active index: {next_active_index}")
+            
+            # Получаем следующее устройство
+            next_device = active_devices[next_active_index]
+            print(f"Next input device: {next_device}")
+            
+            # Обновляем текущий индекс в общем списке устройств
+            current_input_device_index = next(i for i, device in enumerate(input_devices) 
+                                          if device[0] == next_device[0])
+            print(f"New current input device index: {current_input_device_index}")
+            
+            # Устанавливаем новое устройство
+            print(f"Setting default input device to: {next_device[0]}")
+            set_default_input_device(next_device[0])
+            
+            # Показываем уведомление
+            Thread(target=show_notification, args=(f"Input switched to: {next_device[1]}",)).start()
+            
+        except Exception as e:
+            print(f"Error during input device switching: {e}")
+        
+    except Exception as e:
+        print(f"Error switching input device: {e}")
+
+def set_default_input_device(device_index):
+    """Устанавливает устройство ввода по умолчанию"""
+    ps_script = f"""
+    try {{
+        Set-AudioDevice -Index {device_index}
+    }} catch {{
+        Write-Host "Error setting default input device: $_"
+    }}
+    """
+    
+    try:
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        
+        result = subprocess.run(
+            [r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", "-Command", ps_script],
+            capture_output=True,
+            text=True,
+            encoding='cp866',
+            creationflags=subprocess.CREATE_NO_WINDOW,
+            startupinfo=startupinfo
+        )
+        if result.stderr:
+            print("PowerShell error:", result.stderr)
+    except Exception as e:
+        print(f"Error executing PowerShell: {e}")
+
+def toggle_microphone_volume():
+    """Переключает громкость микрофона между 0% и 100%"""
+    try:
+        pythoncom.CoInitialize()
+        devices = AudioUtilities.GetMicrophone()
+        
+        if not devices:
+            return
+
+        interface = devices.Activate(
+            IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+        volume = cast(interface, POINTER(IAudioEndpointVolume))
+        
+        if volume.GetMute():
+            volume.SetMute(0, None)
+            volume.SetMasterVolumeLevelScalar(1.0, None)
+            Thread(target=show_notification, args=("Microphone: ON",)).start()
+        else:
+            volume.SetMute(1, None)
+            volume.SetMasterVolumeLevelScalar(0.0, None)
+            Thread(target=show_notification, args=("Microphone: OFF",)).start()
+    except:
+        pass
+    finally:
+        pythoncom.CoUninitialize()
+
+@app.route("/get_output_devices")
+def get_output_devices():
+    """Возвращает список устройств вывода звука"""
+    try:
+        devices = get_audio_devices()
+        return jsonify({
+            "status": "success",
+            "devices": devices
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        })
+
+@app.route("/save_settings", methods=["POST"])
+def save_settings_endpoint():
+    try:
+        data = request.json
+        if not data:
+            return jsonify({"status": "error", "message": "No data received"})
+
+        # Проверяем формат данных
+        for action, combo in data.items():
+            if not isinstance(combo, dict) or "keyboard" not in combo or "mouse" not in combo:
+                return jsonify({
+                    "status": "error",
+                    "message": f"Invalid data format for action {action}"
+                })
+
+        # Обновляем структуру если нужно
+        data, _ = update_settings_structure(data)
+
+        # Сохраняем настройки
+        if save_settings(data):
+            global hotkeys
+            hotkeys = data
+            return jsonify({"status": "success"})
+        else:
+            return jsonify({"status": "error", "message": "Error saving settings"})
+    except Exception as e:
+        print(f"Error in save_settings_endpoint: {e}")
+        return jsonify({"status": "error", "message": str(e)})
+
+# Добавляем глобальные переменные, если они были удалены
+devices = []
+current_device_index = 0
+running = False
+
+# Добавляем глобальные переменные для устройств ввода
+input_devices = []
+current_input_device_index = 0
+
 def main():
     global running, devices, input_devices, current_device_index, current_input_device_index
     running = True
@@ -798,6 +1197,10 @@ def main():
     # Получаем списки устройств
     devices = get_audio_devices()
     input_devices = get_input_devices()
+    
+    # Загружаем списки активных устройств
+    load_enabled_devices()
+    load_enabled_input_devices()
     
     if not devices:
         print("No audio output devices found!")
@@ -839,154 +1242,6 @@ def main():
         tracker.stop()
         if hasattr(tray_icon, '_icon') and tray_icon._icon:
             tray_icon.stop()
-
-@app.route("/save_settings", methods=["POST"])
-def save_settings_endpoint():
-    try:
-        data = request.json
-        if not data:
-            return jsonify({"status": "error", "message": "No data received"})
-
-        # Проверяем формат данных
-        for action, combo in data.items():
-            if not isinstance(combo, dict) or "keyboard" not in combo or "mouse" not in combo:
-                return jsonify({
-                    "status": "error",
-                    "message": f"Invalid data format for action {action}"
-                })
-
-        # Обновляем структуру если нужно
-        data, _ = update_settings_structure(data)
-
-        # Сохраняем настройки
-        if save_settings(data):
-            global hotkeys
-            hotkeys = data
-            return jsonify({"status": "success"})
-        else:
-            return jsonify({"status": "error", "message": "Error saving settings"})
-    except Exception as e:
-        print(f"Error in save_settings_endpoint: {e}")
-        return jsonify({"status": "error", "message": str(e)})
-
-devices = []
-current_device_index = 0
-running = False
-
-# Добавляем глобальные переменные для устройств ввода
-input_devices = []
-current_input_device_index = 0
-
-def get_input_devices():
-    """Получает список устройств ввода (микофонов)"""
-    powershell_path = r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
-    
-    ps_script = """
-    if (-not (Get-Module -ListAvailable -Name AudioDeviceCmdlets)) {
-        Write-Host "ERROR: AudioDeviceCmdlets not installed"
-        exit 1
-    }
-    
-    try {
-        $devices = Get-AudioDevice -List | Where-Object { $_.Type -eq 'Recording' }
-        $devices | ForEach-Object { "$($_.Index),$($_.Name)" }
-    } catch {
-        Write-Host "Error getting input device list"
-    }
-    """
-    
-    try:
-        result = subprocess.run(
-            [powershell_path, "-Command", ps_script],
-            capture_output=True,
-            text=True,
-            creationflags=subprocess.CREATE_NO_WINDOW
-        )
-        
-        if "ERROR: AudioDeviceCmdlets not installed" in result.stdout:
-            print("AudioDeviceCmdlets module needs to be installed. Installing...")
-            install_script = """
-            Install-Module -Name AudioDeviceCmdlets -Force -Scope CurrentUser
-            """
-            subprocess.run(
-                [powershell_path, "-Command", install_script],
-                creationflags=subprocess.CREATE_NO_WINDOW
-            )
-            result = subprocess.run(
-                [powershell_path, "-Command", ps_script],
-                capture_output=True,
-                text=True,
-                creationflags=subprocess.CREATE_NO_WINDOW
-            )
-        
-        devices = result.stdout.strip().split('\n')
-        devices = [device.split(',') for device in devices if device.strip()]
-        return devices
-        
-    except Exception as e:
-        print(f"Error getting input devices: {e}")
-        return []
-
-def switch_input_device(direction):
-    """Переключает устройство ввода"""
-    global current_input_device_index, input_devices
-    try:
-        if not input_devices:
-            return
-            
-        if direction == 'prev':
-            current_input_device_index = (current_input_device_index - 1) % len(input_devices)
-        else:
-            current_input_device_index = (current_input_device_index + 1) % len(input_devices)
-        
-        device_index = input_devices[current_input_device_index][0]
-        
-        # PowerShell скрипт для установки устройства ввода по умолчанию
-        ps_script = f"""
-        try {{
-            Set-AudioDevice -Index {device_index}
-        }} catch {{
-            Write-Host "Error setting default input device: $_"
-        }}
-        """
-        
-        subprocess.run(
-            [r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", "-Command", ps_script],
-            creationflags=subprocess.CREATE_NO_WINDOW
-        )
-        
-        # Показываем уведомление
-        device_name = input_devices[current_input_device_index][1]
-        Thread(target=show_notification, args=(f"Input switched to: {device_name}",)).start()
-        
-    except Exception as e:
-        print(f"Error switching input device: {e}")
-
-def toggle_microphone_volume():
-    """Переключает громкость микрофона между 0% и 100%"""
-    try:
-        pythoncom.CoInitialize()
-        devices = AudioUtilities.GetMicrophone()
-        
-        if not devices:
-            return
-
-        interface = devices.Activate(
-            IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
-        volume = cast(interface, POINTER(IAudioEndpointVolume))
-        
-        if volume.GetMute():
-            volume.SetMute(0, None)
-            volume.SetMasterVolumeLevelScalar(1.0, None)
-            Thread(target=show_notification, args=("Microphone: ON",)).start()
-        else:
-            volume.SetMute(1, None)
-            volume.SetMasterVolumeLevelScalar(0.0, None)
-            Thread(target=show_notification, args=("Microphone: OFF",)).start()
-    except:
-        pass
-    finally:
-        pythoncom.CoUninitialize()
 
 if __name__ == "__main__":
     main()

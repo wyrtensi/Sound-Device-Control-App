@@ -152,11 +152,89 @@
         .notification.error {
             background: linear-gradient(90deg, #dc3545, #c82333);
         }
+
+        .device-control-group {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: rgba(51, 51, 51, 0.5);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .device-control-group h2 {
+            color: #fff;
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            font-weight: 500;
+        }
+
+        .devices-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .device-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background-color: rgba(68, 68, 68, 0.5);
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .device-item:hover {
+            background-color: rgba(80, 80, 80, 0.5);
+        }
+
+        .device-checkbox {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .device-name {
+            color: #fff;
+            font-size: 1em;
+            flex-grow: 1;
+            cursor: pointer;
+            padding: 5px;
+            user-select: none;
+        }
+
+        .device-name:hover {
+            color: #00c3ff;
+        }
+
+        .device-current {
+            color: #00c3ff;
+            font-size: 0.9em;
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Sound Device Control App</h1>
+        
+        <!-- Добавляем блок управления устройствами -->
+        <div class="device-control-group">
+            <h2>Output Devices</h2>
+            <div id="outputDevicesList" class="devices-list">
+                <!-- Устройства будут добавлены через JavaScript -->
+            </div>
+        </div>
+
+        <!-- Добавляем блок управления устройствами ввода -->
+        <div class="device-control-group">
+            <h2>Input Devices</h2>
+            <div id="inputDevicesList" class="devices-list">
+                <!-- Устройства будут добавлены через JavaScript -->
+            </div>
+        </div>
         
         <form id="hotkeyForm">
             {% for action, combo in hotkeys.items() %}
@@ -250,6 +328,140 @@
             } catch (error) {
                 showNotification('Error saving settings: ' + error, true);
             }
+        });
+
+        // Добавляем функции для работы с устройствами
+        async function loadOutputDevices() {
+            try {
+                const response = await fetch('/get_output_devices');
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    const devicesList = document.getElementById('outputDevicesList');
+                    devicesList.innerHTML = '';
+                    
+                    result.devices.forEach(device => {
+                        const [index, name] = device;
+                        const deviceElement = document.createElement('div');
+                        deviceElement.className = 'device-item';
+                        
+                        deviceElement.innerHTML = `
+                            <input type="checkbox" class="device-checkbox" 
+                                   id="device-${index}"
+                                   data-device-index="${index}" checked>
+                            <label class="device-name" for="device-${index}">${name}</label>
+                        `;
+                        
+                        devicesList.appendChild(deviceElement);
+                    });
+                    
+                    // Добавляем обработчики для чекбоксов
+                    document.querySelectorAll('.device-checkbox').forEach(checkbox => {
+                        checkbox.addEventListener('change', async (e) => {
+                            const deviceIndex = e.target.getAttribute('data-device-index');
+                            const enabled = e.target.checked;
+                            
+                            try {
+                                const response = await fetch('/set_device_enabled', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        device_index: deviceIndex,
+                                        enabled: enabled
+                                    })
+                                });
+                                
+                                const result = await response.json();
+                                if (result.status !== 'success') {
+                                    showNotification('Error updating device status: ' + result.message, true);
+                                }
+                            } catch (error) {
+                                showNotification('Error updating device status', true);
+                                console.error('Error:', error);
+                            }
+                        });
+                    });
+                } else {
+                    showNotification('Error loading devices: ' + result.message, true);
+                }
+            } catch (error) {
+                showNotification('Error loading devices', true);
+                console.error('Error:', error);
+            }
+        }
+
+        async function loadInputDevices() {
+            try {
+                const response = await fetch('/get_input_devices');
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    const devicesList = document.getElementById('inputDevicesList');
+                    devicesList.innerHTML = '';
+                    
+                    result.devices.forEach(device => {
+                        const [index, name] = device;
+                        const deviceElement = document.createElement('div');
+                        deviceElement.className = 'device-item';
+                        
+                        deviceElement.innerHTML = `
+                            <input type="checkbox" class="device-checkbox" 
+                                   id="input-device-${index}"
+                                   data-device-index="${index}" 
+                                   data-device-type="input" checked>
+                            <label class="device-name" for="input-device-${index}">${name}</label>
+                        `;
+                        
+                        devicesList.appendChild(deviceElement);
+                    });
+                    
+                    // Добавляем обработчики для чекбоксов
+                    document.querySelectorAll('.device-checkbox[data-device-type="input"]').forEach(checkbox => {
+                        checkbox.addEventListener('change', async (e) => {
+                            const deviceIndex = e.target.getAttribute('data-device-index');
+                            const enabled = e.target.checked;
+                            
+                            try {
+                                const response = await fetch('/set_input_device_enabled', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        device_index: deviceIndex,
+                                        enabled: enabled
+                                    })
+                                });
+                                
+                                const result = await response.json();
+                                if (result.status !== 'success') {
+                                    showNotification('Error updating device status: ' + result.message, true);
+                                }
+                            } catch (error) {
+                                showNotification('Error updating device status', true);
+                                console.error('Error:', error);
+                            }
+                        });
+                    });
+                } else {
+                    showNotification('Error loading input devices: ' + result.message, true);
+                }
+            } catch (error) {
+                showNotification('Error loading input devices', true);
+                console.error('Error:', error);
+            }
+        }
+
+        async function loadDevices() {
+            await loadOutputDevices();
+            await loadInputDevices();
+        }
+
+        // Обновляем загрузку устройств при загрузке страницы
+        document.addEventListener('DOMContentLoaded', () => {
+            loadDevices();
         });
     </script>
 </body>
