@@ -158,4 +158,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.hotkey-input').forEach(input => {
         input.addEventListener('focus', () => keyboard.showKeyboard(input));
     });
+});
+
+window.addEventListener('themeChange', (event) => {
+    const theme = event.detail.theme;
+    if (theme === 'light') {
+        document.body.classList.add('light-theme');
+    } else {
+        document.body.classList.remove('light-theme');
+    }
 }); 

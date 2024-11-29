@@ -380,12 +380,134 @@
         .device-name:hover {
             color: #4A9EFF;
         }
+
+        .theme-switcher {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .theme-label {
+            color: #fff;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(145deg, #2a2a2a, #222);
+            transition: .4s;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+        }
+
+        input:checked + .slider {
+            background: linear-gradient(145deg, #4A9EFF, #3d84d5);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .slider.round {
+            border-radius: 34px;
+        }
+
+        .slider.round:before {
+            border-radius: 50%;
+        }
+
+        /* Light theme styles */
+        body.light-theme {
+            background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%);
+            color: #333;
+        }
+
+        .light-theme .container {
+            background-color: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .light-theme h1 {
+            color: #333;
+        }
+
+        .light-theme .hotkey-group {
+            background-color: rgba(245, 245, 245, 0.9);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .light-theme .hotkey-label {
+            color: #333;
+        }
+
+        .light-theme .hotkey-input {
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            color: #333;
+        }
+
+        .light-theme .device-section {
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .light-theme .device-item {
+            background-color: rgba(245, 245, 245, 0.9);
+            color: #333;
+        }
+
+        .light-theme .device-name {
+            color: #333;
+        }
+
+        .light-theme .theme-label {
+            color: #333;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Sound Device Control App</h1>
         
+        <div class="theme-switcher">
+            <label class="switch">
+                <input type="checkbox" id="themeToggle">
+                <span class="slider round"></span>
+            </label>
+            <span class="theme-label">Light Theme</span>
+        </div>
+
         <form id="hotkeyForm">
             <!-- Output Devices Section -->
             <div class="device-section">
@@ -730,6 +852,28 @@
         // Загружаем устройства при загрузке страницы
         document.addEventListener('DOMContentLoaded', () => {
             loadDevices();
+        });
+
+        // Theme switcher
+        document.getElementById('themeToggle').addEventListener('change', function() {
+            document.body.classList.toggle('light-theme');
+            
+            // Сохраняем выбор темы
+            localStorage.setItem('theme', this.checked ? 'light' : 'dark');
+            
+            // Отправляем событие для модального окна клавиатуры
+            window.dispatchEvent(new CustomEvent('themeChange', {
+                detail: { theme: this.checked ? 'light' : 'dark' }
+            }));
+        });
+
+        // Загружаем сохраненную тему при загрузке страницы
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') {
+                document.getElementById('themeToggle').checked = true;
+                document.body.classList.add('light-theme');
+            }
         });
     </script>
 </body>
