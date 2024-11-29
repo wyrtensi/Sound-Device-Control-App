@@ -31,7 +31,7 @@ Install-Module -Name AudioDeviceCmdlets -Force -Scope CurrentUser
 
 ![image](https://github.com/user-attachments/assets/64039e2c-595a-4502-afbf-e137b6110e13)
 
-![image](https://github.com/user-attachments/assets/6b5d6fc4-169b-4f61-bfa6-e85ec569318f)
+![image](https://github.com/user-attachments/assets/1568717a-fda7-4d06-868e-be09c23c3913)
 
 ![image](https://github.com/user-attachments/assets/6d36aa7c-c14a-4209-b591-930b3b6dea17)
 
