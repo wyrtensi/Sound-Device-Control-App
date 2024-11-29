@@ -9,7 +9,7 @@ App features:
 3. Adjust volume by hotkey.
 4. Hotkeys for play/plause, next/pervious song.
 5. Turn ON and OFF your microphone by pressing a hotkey. (Switching it by adjusting microphone volume from 0 to 100)
-6. Notifications for switching device, turning off microphone.
+6. Notifications for switching device, turning off microphone. (also supports light theme)
 7. Chose what devices you switch between.
 8. Intuitive interface for hotkeys assignment. With light theme switch.
 9. Launch on Windows startup option.
