@@ -503,6 +503,60 @@
             align-items: center;
             gap: 10px;
         }
+
+        .notification-position-switcher {
+            position: absolute;
+            top: 20px;
+            right: 400px;  /* Размещаем правее других переключателей */
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .position-label {
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .position-select {
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: linear-gradient(145deg, #666, #555);  /* Серый фон по умолчанию (темная тема) */
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .position-select:hover {
+            background: linear-gradient(145deg, #777, #666);  /* Чуть светлее при наведении */
+        }
+
+        .position-select option {
+            background-color: #666;  /* Серый фон для опций */
+            color: #fff;
+        }
+
+        /* Стили для светлой темы */
+        .light-theme .position-select {
+            background: linear-gradient(145deg, #f5f5f5, #e8e8e8);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            color: #333;
+        }
+
+        .light-theme .position-select:hover {
+            background: linear-gradient(145deg, #fff, #f5f5f5);
+        }
+
+        .light-theme .position-select option {
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        /* Стили для светлой темы */
+        .light-theme .position-label {
+            color: #333;  /* Черный текст для метки в светлой теме */
+        }
     </style>
 </head>
 <body>
@@ -523,6 +577,13 @@
                 <span class="slider round"></span>
             </label>
             <span class="theme-label">Start with Windows</span>
+        </div>
+
+        <div class="notification-position-switcher">
+            <label class="position-label">Notification Position:</label>
+            <select id="notificationPosition" class="position-select">
+                <!-- Опции будут добавлены через JavaScript -->
+            </select>
         </div>
 
         <form id="hotkeyForm">
@@ -971,6 +1032,57 @@
                 console.error('Error setting autostart:', error);
                 showNotification('Error setting autostart', true);
                 this.checked = !this.checked;
+            }
+        });
+
+        // Загружаем позиции уведомлений при загрузке страницы
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch('/get_notification_position');
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    const select = document.getElementById('notificationPosition');
+                    const positions = result.available_positions;
+                    
+                    // Заполняем select опциями
+                    Object.entries(positions).forEach(([value, label]) => {
+                        const option = document.createElement('option');
+                        option.value = value;
+                        option.textContent = label;
+                        if (value === result.current_position) {
+                            option.selected = true;
+                        }
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading notification positions:', error);
+            }
+        });
+
+        // Обработчик изменения позиции
+        document.getElementById('notificationPosition').addEventListener('change', async function() {
+            try {
+                const response = await fetch('/set_notification_position', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        position: this.value
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showNotification('Notification position updated');
+                } else {
+                    showNotification('Error updating notification position', true);
+                }
+            } catch (error) {
+                console.error('Error setting notification position:', error);
+                showNotification('Error updating notification position', true);
             }
         });
     </script>
