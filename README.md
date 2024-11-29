@@ -10,7 +10,8 @@ App features:
 4. Hotkeys for play/plause, next/pervious song.
 5. Turn ON and OFF your microphone by pressing a hotkey. (Switching it by adjusting microphone volume from 0 to 100)
 6. Notifications for switching device, turning off microphone.
-7. Intuitive interface for hotkeys assignment. 
+7. Chose what devices you switch between.
+8. Intuitive interface for hotkeys assignment. 
 
 ![image](https://github.com/user-attachments/assets/02de48b0-698b-416b-8cc5-6d1eea045e8e)
 
@@ -29,6 +30,8 @@ Install-Module -Name AudioDeviceCmdlets -Force -Scope CurrentUser
 ![image](https://github.com/user-attachments/assets/02de48b0-698b-416b-8cc5-6d1eea045e8e)
 
 ![image](https://github.com/user-attachments/assets/64039e2c-595a-4502-afbf-e137b6110e13)
+
+![image](https://github.com/user-attachments/assets/bb44d416-73e3-4dff-9d2d-87d41aac363b)
 
 ![image](https://github.com/user-attachments/assets/c99c136a-624b-4504-b2a9-8f88d0f5464b)
 
