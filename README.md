@@ -12,6 +12,8 @@ App features:
 6. Notifications for switching device, turning off microphone.
 7. Chose what devices you switch between.
 8. Intuitive interface for hotkeys assignment. With light theme switch.
+9. Launch on Windows startup option.
+
 
 ![image](https://github.com/user-attachments/assets/02de48b0-698b-416b-8cc5-6d1eea045e8e)
 
