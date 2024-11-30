@@ -26,6 +26,7 @@ from PIL import Image, ImageDraw
 import pystray
 import tempfile
 import win32ui
+import threading
 
 # Windows constants
 WM_APPCOMMAND = 0x319
@@ -79,6 +80,15 @@ default_hotkeys = {
         "keyboard": "ctrl+left",
         "mouse": "None"
     }
+}
+
+# Добавляем константы для позиций уведомлений
+NOTIFICATION_POSITIONS = {
+    "top_right": "Top Right",
+    "top_left": "Top Left", 
+    "bottom_left": "Bottom Left",
+    "bottom_right": "Bottom Right",
+    "center": "Center"
 }
 
 class KeyboardMouseTracker:
@@ -439,7 +449,7 @@ def check_hotkey_combination(hotkey, state):
             if len(keyboard_keys) != len(current_keys):
                 return False
             
-            # Проверяем, что все необходимые клавиши нажаты
+            # Проверяем, что вс необходимые клавии нажты
             keyboard_match = all(key in current_keys for key in keyboard_keys)
             if not keyboard_match:
                 return False
@@ -469,7 +479,7 @@ def send_media_message(app_command):
     ctypes.windll.user32.SendMessageW(hwnd, WM_APPCOMMAND, 0, app_command * 0x10000)
 
 def get_audio_devices():
-    """Получает список устройств выво звука"""
+    """Получает список устройств вывода звука"""
     powershell_path = r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
     
     ps_script = """
@@ -481,9 +491,7 @@ def get_audio_devices():
     try {
         $OutputEncoding = [Console]::OutputEncoding = [Text.Encoding]::UTF8
         $devices = Get-AudioDevice -List | Where-Object { $_.Type -eq 'Playback' }
-        Write-Host "Found devices:"
         $devices | ForEach-Object {
-            Write-Host ("Device: Index={0}, Name={1}" -f $_.Index, $_.Name)
             Write-Output ("DEVICE:{0}|{1}" -f $_.Index, $_.Name)
         }
     } catch {
@@ -504,10 +512,6 @@ def get_audio_devices():
             startupinfo=startupinfo
         )
         
-        print("PowerShell output:", result.stdout)
-        if result.stderr:
-            print("PowerShell error:", result.stderr)
-        
         devices = []
         for line in result.stdout.split('\n'):
             if line.strip().startswith('DEVICE:'):
@@ -516,10 +520,8 @@ def get_audio_devices():
                     index, name = device_info.split('|', 1)
                     devices.append([index.strip(), name.strip()])
                 except ValueError as e:
-                    print(f"Error parsing line '{line}': {e}")
                     continue
         
-        print(f"Found devices: {devices}")
         return devices
         
     except Exception as e:
@@ -701,6 +703,8 @@ class NotificationWindow:
         except Exception as e:
             print(f"Failed to register window class: {e}")
 
+        self.notification_position = self.load_notification_position()
+
     def _window_proc(self, hwnd, msg, wparam, lparam):
         if msg == win32con.WM_DESTROY:
             win32gui.PostQuitMessage(0)
@@ -727,16 +731,30 @@ class NotificationWindow:
                 height = 80
                 screen_width = win32api.GetSystemMetrics(win32con.SM_CXSCREEN)
                 screen_height = win32api.GetSystemMetrics(win32con.SM_CYSCREEN)
-                x = screen_width - width - 20
-                y = screen_height - height - 40
+                
+                # Получаем координаты в зависимости от выбранной позиции
+                x, y = self.get_notification_position(width, height, screen_width, screen_height)
 
+                # Добавляем WS_EX_TOPMOST к стилям окна
                 hwnd = win32gui.CreateWindowEx(
-                    win32con.WS_EX_LAYERED | win32con.WS_EX_TOPMOST | win32con.WS_EX_TOOLWINDOW,
+                    win32con.WS_EX_TOOLWINDOW | win32con.WS_EX_TOPMOST,  # Добавляем WS_EX_TOPMOST
                     self.WINDOW_CLASS,
                     "Notification",
                     win32con.WS_POPUP | win32con.WS_VISIBLE,
                     x, y, width, height,
                     0, 0, win32api.GetModuleHandle(None), None
+                )
+
+                # Создаем скругленный регион для окна
+                region = win32gui.CreateRoundRectRgn(0, 0, width, height, 15, 15)
+                win32gui.SetWindowRgn(hwnd, region, True)
+
+                # Устанавливаем окно поверх всех окон
+                win32gui.SetWindowPos(
+                    hwnd, 
+                    win32con.HWND_TOPMOST,
+                    x, y, width, height,
+                    win32con.SWP_NOACTIVATE | win32con.SWP_SHOWWINDOW
                 )
 
                 # Создаем DC для рисования
@@ -794,36 +812,17 @@ class NotificationWindow:
                 win32gui.DrawText(memdc, text, -1, rect, 
                                 win32con.DT_LEFT | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
 
-                # Копируем из памяти на экран
-                win32gui.UpdateLayeredWindow(
-                    hwnd, 0,
-                    (x, y),
-                    (width, height),
-                    memdc,
-                    (0, 0),
-                    0,
-                    (win32con.AC_SRC_OVER, 0, 255, win32con.AC_SRC_ALPHA)
-                )
+                # Копируем из памяти на экран напрямую
+                win32gui.BitBlt(hdc, 0, 0, width, height, memdc, 0, 0, win32con.SRCCOPY)
 
                 # Очищаем ресурсы
-                win32gui.DeleteObject(font)
                 win32gui.DeleteObject(bitmap)
                 win32gui.DeleteDC(memdc)
                 win32gui.ReleaseDC(hwnd, hdc)
 
-                # Анимация появления
-                for alpha in range(0, 255, 15):
-                    win32gui.SetLayeredWindowAttributes(hwnd, 0, alpha, win32con.LWA_ALPHA)
-                    time.sleep(0.01)
-
-                # Ждем перед исчезновением
+                # Ждем перед закрытием
                 time.sleep(2)
-
-                # Анимация исчезновения
-                for alpha in range(255, 0, -15):
-                    win32gui.SetLayeredWindowAttributes(hwnd, 0, alpha, win32con.LWA_ALPHA)
-                    time.sleep(0.01)
-
+                
                 win32gui.DestroyWindow(hwnd)
 
             except Exception as e:
@@ -832,6 +831,35 @@ class NotificationWindow:
                 print(traceback.format_exc())
 
         Thread(target=_show, daemon=True).start()
+
+    def load_notification_position(self):
+        try:
+            with open('notification_settings.json', 'r') as f:
+                settings = json.load(f)
+                return settings.get('position', 'bottom_right')
+        except FileNotFoundError:
+            return 'bottom_right'
+
+    def save_notification_position(self, position):
+        try:
+            with open('notification_settings.json', 'w') as f:
+                json.dump({'position': position}, f)
+        except Exception as e:
+            print(f"Error saving notification position: {e}")
+
+    def get_notification_position(self, width, height, screen_width, screen_height):
+        padding = 20
+        bottom_padding = 70  # Увеличенный отступ снизу для нижних позиций (было 50, стало 70)
+        
+        positions = {
+            'top_right': (screen_width - width - padding, padding),
+            'top_left': (padding, padding),
+            'bottom_left': (padding, screen_height - height - bottom_padding),
+            'bottom_right': (screen_width - width - padding, screen_height - height - bottom_padding),
+            'center': (screen_width//2 - width//2, screen_height//2 - height//2)
+        }
+        
+        return positions.get(self.notification_position, positions['bottom_right'])
 
 # Создаем глобальный объект для уведомлений
 notification_window = NotificationWindow()
@@ -898,72 +926,45 @@ def switch_audio_device(direction):
     """Переключает устройство вывода звука"""
     global current_device_index, devices, enabled_devices
     try:
-        print(f"\nSwitching device {direction}")
-        print(f"Current device index: {current_device_index}")
-        print(f"All devices: {devices}")
-        print(f"Enabled devices: {enabled_devices}")
-        
         if not devices:
-            # Обновляем список устройств, если он пуст
             devices = get_audio_devices()
             if not devices:
-                print("No devices available")
                 return
         
-        # Если enabled_devices пуст, добавляем все устройства
         if not enabled_devices:
             enabled_devices.update(device[0] for device in devices)
             save_enabled_devices()
             
-        # Получаем список активных устройств
         active_devices = [device for device in devices if device[0] in enabled_devices]
-        print(f"Active devices: {active_devices}")
         
         if not active_devices:
-            print("No active devices")
             return
             
-        # Если текущи индекс некорректный, устанавливаем его на первое активное устройство
         if current_device_index >= len(devices) or current_device_index < 0:
             current_device_index = 0
             
-        # Находим текущее устройство в списке активных
         try:
             current_device = next((device for device in active_devices 
                                 if device[0] == devices[current_device_index][0]), 
                                 active_devices[0])
-            print(f"Current device: {current_device}")
             
-            # Нахоим индекс текущего устройства в списке активных
             current_active_index = active_devices.index(current_device)
-            print(f"Current active index: {current_active_index}")
             
-            # Определяем следующее устройство
             if direction == 'prev':
                 next_active_index = (current_active_index - 1) % len(active_devices)
             else:
                 next_active_index = (current_active_index + 1) % len(active_devices)
-            print(f"Next active index: {next_active_index}")
             
-            # Получаем следующее устройство
             next_device = active_devices[next_active_index]
-            print(f"Next device: {next_device}")
             
-            # Обновляем текущий индекс в общем списке устройств
             current_device_index = next(i for i, device in enumerate(devices) 
                                     if device[0] == next_device[0])
-            print(f"New current device index: {current_device_index}")
             
-            # Устанвливаем новое устройство
-            print(f"Setting default audio device to: {next_device[0]}")
             set_default_audio_device(next_device[0])
             
-            # Показываем уведомление
             Thread(target=show_notification, args=(f"Switched to: {next_device[1]}",)).start()
             
         except Exception as e:
-            print(f"Error during device switching: {e}")
-            # Если произошла ошибка, пробуем установить первое активное устройство
             if active_devices:
                 current_device_index = next(i for i, device in enumerate(devices) 
                                         if device[0] == active_devices[0][0])
@@ -1011,11 +1012,8 @@ def exit_app(icon, item):
     global running
     running = False
 
-# Добавляем константы для трея
-WM_USER = 0x400
-WM_TRAYICON = WM_USER + 1
-WM_RBUTTONUP = 0x0205
-WM_LBUTTONUP = 0x0202
+# Добавляем константу для отслеживания изменений устройств
+WM_DEVICECHANGE = 0x0219
 
 class SystemTray:
     def __init__(self):
@@ -1027,7 +1025,7 @@ class SystemTray:
             image = Image.new('RGBA', (icon_size, icon_size), (0, 0, 0, 0))
             draw = ImageDraw.Draw(image)
 
-            # Рисуем градиентный круг
+            # Рисуем граиентный круг
             for i in range(20):
                 alpha = int(255 * (1 - i/20))
                 color = (0, 123, 255, alpha)
@@ -1162,7 +1160,7 @@ def update_settings_structure(settings):
             updated = True
     return settings, updated
 
-# Загрузка настроек при запуске
+# Загрузк настроек при запуске
 try:
     with open('settings.json', 'r', encoding='utf-8') as f:
         hotkeys = json.load(f)
@@ -1238,7 +1236,7 @@ def load_enabled_input_devices():
         with open('enabled_input_devices.json', 'r') as f:
             enabled_input_devices = set(json.load(f))
     except FileNotFoundError:
-        # Еси файл не существует, все устройства активны по умолчанию
+        # Еси файл не существует, все усройства активны по умолчанию
         enabled_input_devices = set(device[0] for device in input_devices)
         save_enabled_input_devices()
 
@@ -1335,7 +1333,6 @@ def get_input_devices():
                     print(f"Error parsing line '{line}': {e}")
                     continue
         
-        print(f"Found input devices: {devices}")
         return devices
         
     except Exception as e:
@@ -1346,59 +1343,35 @@ def switch_input_device(direction):
     """Переключает устройство ввода звука"""
     global current_input_device_index, input_devices, enabled_input_devices
     try:
-        print(f"\nSwitching input device {direction}")
-        print(f"Current input device index: {current_input_device_index}")
-        print(f"All input devices: {input_devices}")
-        print(f"Enabled input devices: {enabled_input_devices}")
-        
         if not input_devices:
-            # Обновляем список устройст, если он пуст
             input_devices = get_input_devices()
             if not input_devices:
-                print("No input devices available")
                 return
             
-        # Получам список активных устройств
         active_devices = [device for device in input_devices if device[0] in enabled_input_devices]
-        print(f"Active input devices: {active_devices}")
         
         if not active_devices:
-            print("No active input devices")
             return
             
-        # Находим текущее устройство в списке активных
         try:
             current_device = next((device for device in active_devices 
                                 if device[0] == input_devices[current_input_device_index][0]), 
                                 active_devices[0])
-            print(f"Current input device: {current_device}")
             
-            # Находим индекс текущего устройсва в списке активных
             current_active_index = active_devices.index(current_device)
-            print(f"Current active index: {current_active_index}")
             
-            # Определяем следующее устройство
             if direction == 'prev':
                 next_active_index = (current_active_index - 1) % len(active_devices)
             else:
                 next_active_index = (current_active_index + 1) % len(active_devices)
-            print(f"Next active index: {next_active_index}")
             
-            # Получаем следующее устройство
             next_device = active_devices[next_active_index]
-            print(f"Next input device: {next_device}")
             
-            # Обновляем текущий индекс в общем списке устройств
             current_input_device_index = next(i for i, device in enumerate(input_devices) 
                                           if device[0] == next_device[0])
-            print(f"New current input device index: {current_input_device_index}")
             
-            # Устанавливаем новое устройство
-            print(f"Setting default input device to: {next_device[0]}")
             set_default_input_device(next_device[0])
             
-            # Показываем уведоление
-            print("Calling show_notification")
             show_notification(f"Input switched to: {next_device[1]}", 'microphone')
             
         except Exception as e:
@@ -1561,7 +1534,7 @@ def get_autostart_status():
         return False
 
 def set_autostart(enable):
-    """Включает или выключает автозагрузку приложения"""
+    """Включает или выключет автозагрузку приложения"""
     try:
         key = winreg.OpenKey(
             winreg.HKEY_CURRENT_USER,
@@ -1646,6 +1619,111 @@ def set_theme():
             "message": str(e)
         })
 
+@app.route("/get_notification_position")
+def get_notification_position():
+    """Возвращает текущую позицию уведомлений и список доступных позиций"""
+    try:
+        return jsonify({
+            "status": "success",
+            "current_position": notification_window.notification_position,
+            "available_positions": NOTIFICATION_POSITIONS
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        })
+
+@app.route("/set_notification_position", methods=["POST"])
+def set_notification_position():
+    """Устанавливает новую позицию уведомлений"""
+    try:
+        data = request.json
+        position = data.get("position")
+        
+        if position not in NOTIFICATION_POSITIONS:
+            return jsonify({
+                "status": "error",
+                "message": "Invalid position"
+            })
+            
+        notification_window.notification_position = position
+        notification_window.save_notification_position(position)
+        
+        return jsonify({
+            "status": "success"
+        })
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        })
+
+# Добавляем глобальные переменные, если они были удалены
+device_update_callbacks = []
+
+def register_device_callback(callback):
+    """Регистрирует функцию обратного вызова для обновления устройств"""
+    device_update_callbacks.append(callback)
+
+def notify_device_changes():
+    """Уведомляет все зарегистрированные функции об изменении устройств"""
+    global devices, input_devices
+    devices = get_audio_devices()
+    input_devices = get_input_devices()
+    for callback in device_update_callbacks:
+        try:
+            callback()
+        except Exception as e:
+            print(f"Error in device update callback: {e}")
+
+class DeviceChangeListener:
+    def __init__(self):
+        self.running = True
+        self.last_check = 0
+        self.check_interval = 1  # Интервал проверки в секундах
+        
+        # Создаем скрытое окно для получения сообщений Windows
+        wc = win32gui.WNDCLASS()
+        wc.lpfnWndProc = self._wnd_proc
+        wc.lpszClassName = "DeviceChangeListener"
+        wc.hInstance = win32api.GetModuleHandle(None)
+        
+        class_atom = win32gui.RegisterClass(wc)
+        self.hwnd = win32gui.CreateWindow(
+            class_atom,
+            "DeviceChangeListener",
+            0,
+            0, 0, 0, 0,
+            0,
+            0,
+            wc.hInstance,
+            None
+        )
+        
+        # Запускаем поток для периодической проверки
+        self.check_thread = threading.Thread(target=self._check_devices, daemon=True)
+        self.check_thread.start()
+
+    def _wnd_proc(self, hwnd, msg, wparam, lparam):
+        if msg == WM_DEVICECHANGE:  # Используем константу WM_DEVICECHANGE
+            notify_device_changes()
+        return win32gui.DefWindowProc(hwnd, msg, wparam, lparam)
+
+    def _check_devices(self):
+        """Периодически проверяет устройства"""
+        while self.running:
+            current_time = time.time()
+            if current_time - self.last_check >= self.check_interval:
+                notify_device_changes()
+                self.last_check = current_time
+            time.sleep(0.5)
+
+    def stop(self):
+        self.running = False
+        if self.hwnd:
+            win32gui.DestroyWindow(self.hwnd)
+
 def main():
     global running, devices, input_devices, current_device_index, current_input_device_index
     running = True
@@ -1655,6 +1733,9 @@ def main():
     for action, combo in hotkeys.items():
         print(f"{action}: keyboard='{combo['keyboard']}', mouse='{combo['mouse']}'")
     print()
+    
+    # Создаем слушатель изменений устройств
+    device_listener = DeviceChangeListener()
     
     # Получаем списки устройств
     devices = get_audio_devices()
@@ -1697,6 +1778,7 @@ def main():
     except KeyboardInterrupt:
         print("\nStopping...")
     finally:
+        device_listener.stop()
         tray.stop()
         tracker.stop()
 

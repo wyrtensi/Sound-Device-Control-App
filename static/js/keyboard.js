@@ -158,6 +158,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.hotkey-input').forEach(input => {
         input.addEventListener('focus', () => keyboard.showKeyboard(input));
     });
+
+    loadDevices();  // Начальная загрузка
+    setupDevicePolling();  // Запускаем периодическое обновление
 });
 
 window.addEventListener('themeChange', (event) => {
@@ -167,4 +170,10 @@ window.addEventListener('themeChange', (event) => {
     } else {
         document.body.classList.remove('light-theme');
     }
-}); 
+});
+
+function setupDevicePolling() {
+    setInterval(async () => {
+        await loadDevices();
+    }, 2000); // Проверяем каждые 2 секунды
+} 
