@@ -1,6 +1,6 @@
 {
     "next_device": {
-        "keyboard": "win+pageup",
+        "keyboard": "alt+b",
         "mouse": "None"
     },
     "prev_device": {
@@ -8,7 +8,7 @@
         "mouse": "None"
     },
     "next_input_device": {
-        "keyboard": "None",
+        "keyboard": "alt+x",
         "mouse": "None"
     },
     "prev_input_device": {
@@ -26,6 +26,10 @@
     "volume_down": {
         "keyboard": "win",
         "mouse": "scrolldown"
+    },
+    "toggle_sound_volume": {
+        "keyboard": "win",
+        "mouse": "mousemiddle"
     },
     "media_play_pause": {
         "keyboard": "win+ctrl+down",
