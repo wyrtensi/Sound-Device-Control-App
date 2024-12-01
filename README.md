@@ -12,7 +12,7 @@ App features:
 2. Profiles system for switching devices.
 3. Multimedia control hotkeys (play/pause, next/pervious song, volume ajustment, volume mute/unmute).
 4. Microphone mute/unmute by hotkey.
-5. Notifications for switching profiles, devices. (supports light theme)
+5. Notifications for switching profiles, devices with position control. (supports light theme)
 6. Intuitive interface with comfortable hotkeys assignment. (also supports light theme)
 7. Start with Windows option.
 
