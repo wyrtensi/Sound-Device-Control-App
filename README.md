@@ -1,8 +1,12 @@
+![image](https://github.com/user-attachments/assets/20f61832-91c1-4248-ba13-916635a82ae7)
+
 Sound Device Control App
 
 Only for Windows 10/11.
 
 IMPORTANT: MAKE YOUR FIRST LAUNCH AS ADMINISTRATOR TO INSTALL AUDIO MODULE.
+
+Also install Visual C++ Redistributable for Visual Studio 2015-2022
 
 Discord server: https://discord.gg/tCAWgzHU
 ![image](https://github.com/user-attachments/assets/02de48b0-698b-416b-8cc5-6d1eea045e8e)
