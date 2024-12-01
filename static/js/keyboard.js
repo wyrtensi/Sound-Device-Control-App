@@ -173,8 +173,15 @@ class ProfileManager {
     constructor() {
         this.currentProfile = null;
         this.profiles = [];
+        this.outputDevices = [];
+        this.inputDevices = [];
         this.setupEventListeners();
-        this.loadProfiles();
+        this.init();
+    }
+
+    async init() {
+        await this.loadProfiles();
+        await this.loadDevices();
     }
 
     setupEventListeners() {
@@ -227,8 +234,12 @@ class ProfileManager {
             }
             const data = await response.json();
             if (data.status === 'success') {
-                this.profiles = data.profiles || [];
-                this.renderProfiles();
+                console.log('Loaded profiles:', data.profiles); // Отладочный вывод
+                this.profiles = data.profiles.map(profile => ({
+                    ...profile,
+                    force_trigger: profile.force_trigger || false
+                }));
+                await this.renderProfiles();
             }
         } catch (error) {
             console.error('Error loading profiles:', error);
@@ -243,31 +254,32 @@ class ProfileManager {
             return;
         }
 
-        const outputDefault = document.getElementById('outputDefaultDevice').value;
-        const outputComm = document.getElementById('outputCommDevice').value;
-        const inputDefault = document.getElementById('inputDefaultDevice').value;
-        const inputComm = document.getElementById('inputCommDevice').value;
-        const hotkeyInput = document.getElementById('profileHotkey');
-        const triggerAppPath = document.getElementById('trigger-app-path').textContent;
+        const forceTriggerCheckbox = document.getElementById('forceTriggerCheckbox');
+        const forceTriggerValue = forceTriggerCheckbox ? forceTriggerCheckbox.checked : false;
+        console.log('Saving force_trigger value:', forceTriggerValue); // Отладочный вывод
 
         const profile = {
             name: profileName,
-            output_default: outputDefault,
-            output_communication: outputComm,
-            input_default: inputDefault,
-            input_communication: inputComm,
+            output_default: document.getElementById('outputDefaultDevice').value,
+            output_communication: document.getElementById('outputCommDevice').value,
+            input_default: document.getElementById('inputDefaultDevice').value,
+            input_communication: document.getElementById('inputCommDevice').value,
             hotkey: {
-                keyboard: hotkeyInput.dataset.keyboard || "None",
-                mouse: hotkeyInput.dataset.mouse || "None"
+                keyboard: document.getElementById('profileHotkey').dataset.keyboard || "None",
+                mouse: document.getElementById('profileHotkey').dataset.mouse || "None"
             },
-            trigger_app: triggerAppPath !== 'No application selected' ? triggerAppPath : null
+            trigger_app: document.getElementById('trigger-app-path').textContent !== 'No application selected' 
+                ? document.getElementById('trigger-app-path').textContent 
+                : null,
+            force_trigger: forceTriggerValue
         };
 
+        console.log('Saving profile:', profile); // Отладочный вывод
+
         try {
+            // Проверяем, существует ли профиль
             const existingProfile = this.profiles.find(p => p.name === profileName);
             const method = existingProfile ? 'PUT' : 'POST';
-
-            console.log('Sending profile data:', profile);
 
             const response = await fetch('/profiles', {
                 method: method,
@@ -359,27 +371,41 @@ class ProfileManager {
         return parts[parts.length - 1];
     }
 
-    async renderProfiles() {
-        const container = document.querySelector('.profile-cards');
-        
-        // Получаем списки устройств
-        let outputDevices = [];
-        let inputDevices = [];
+    async loadDevices() {
         try {
-            const outputResponse = await fetch('/get_output_devices');
-            const outputResult = await outputResponse.json();
-            if (outputResult.status === 'success') {
-                outputDevices = outputResult.devices;
-            }
+            const [outputResponse, inputResponse] = await Promise.all([
+                fetch('/get_output_devices'),
+                fetch('/get_input_devices')
+            ]);
 
-            const inputResponse = await fetch('/get_input_devices');
-            const inputResult = await inputResponse.json();
-            if (inputResult.status === 'success') {
-                inputDevices = inputResult.devices;
+            if (outputResponse.ok && inputResponse.ok) {
+                const outputData = await outputResponse.json();
+                const inputData = await inputResponse.json();
+
+                if (outputData.status === 'success' && inputData.status === 'success') {
+                    // Сохраняем текущие профили
+                    const currentProfiles = this.profiles;
+                    
+                    // Обновляем списки устройств
+                    this.outputDevices = outputData.devices;
+                    this.inputDevices = inputData.devices;
+                    
+                    // Восстанавливаем профили
+                    this.profiles = currentProfiles;
+                    
+                    // Перерисовываем интерфейс
+                    this.renderProfiles();
+                }
             }
         } catch (error) {
             console.error('Error loading devices:', error);
+            showNotification('Error loading devices', true);
         }
+    }
+
+    async renderProfiles() {
+        const container = document.querySelector('.profile-cards');
+        if (!container) return;
 
         // Сохраняем карточку создания нового профиля
         container.innerHTML = `
@@ -393,7 +419,9 @@ class ProfileManager {
             </div>
         `;
 
+        // Рендерим каждый профиль
         this.profiles.forEach(profile => {
+            console.log('Rendering profile:', profile); // Отладочный вывод
             const card = document.createElement('div');
             card.className = 'profile-card existing-profile';
             if (this.currentProfile && this.currentProfile.name === profile.name) {
@@ -403,10 +431,10 @@ class ProfileManager {
             const hotkeyText = `${profile.hotkey.keyboard !== 'None' ? profile.hotkey.keyboard : ''}${
                 profile.hotkey.mouse !== 'None' ? ' + ' + profile.hotkey.mouse : ''}`;
 
-            const outputDefaultName = this.getDeviceName(profile.output_default, outputDevices);
-            const outputCommName = this.getDeviceName(profile.output_communication, outputDevices);
-            const inputDefaultName = this.getDeviceName(profile.input_default, inputDevices);
-            const inputCommName = this.getDeviceName(profile.input_communication, inputDevices);
+            const outputDefaultName = this.getDeviceName(profile.output_default, this.outputDevices || []);
+            const outputCommName = this.getDeviceName(profile.output_communication, this.outputDevices || []);
+            const inputDefaultName = this.getDeviceName(profile.input_default, this.inputDevices || []);
+            const inputCommName = this.getDeviceName(profile.input_communication, this.inputDevices || []);
 
             card.innerHTML = `
                 <div class="card-content">
@@ -418,6 +446,7 @@ class ProfileManager {
                             <div><span class="device-type">Default Input:</span> ${inputDefaultName}</div>
                             ${inputCommName !== 'Not Selected' ? `<div><span class="device-type">Communication Input:</span> ${inputCommName}</div>` : ''}
                             ${profile.trigger_app ? `<div><span class="device-type">Trigger App:</span> ${this.getFileName(profile.trigger_app)}</div>` : ''}
+                            ${profile.force_trigger ? `<div><span class="device-type">Force Mode:</span> Enabled</div>` : ''}
                         </div>
                         ${hotkeyText ? `<div class="hotkey-badge">${hotkeyText}</div>` : ''}
                     </div>
@@ -429,7 +458,6 @@ class ProfileManager {
                 </div>
             `;
 
-            // Добавляем обработчик клика для редактирования
             card.addEventListener('click', () => {
                 this.showProfileEditor(profile);
             });
@@ -455,8 +483,21 @@ class ProfileManager {
             return;
         }
 
+        console.log('Loading profile:', profile);  // Отладочный вывод для всего профиля
+        console.log('Force trigger value:', profile?.force_trigger);  // Отладочный вывод для force_trigger
+
         // Заполняем базовые поля
         document.getElementById('profileName').value = profile ? profile.name : '';
+        
+        // Устанавливаем состояние чекбокса force trigger
+        const forceTriggerCheckbox = document.getElementById('forceTriggerCheckbox');
+        if (forceTriggerCheckbox) {
+            const forceTriggerValue = profile ? profile.force_trigger || false : false;
+            forceTriggerCheckbox.checked = forceTriggerValue;
+            console.log('Setting force trigger checkbox to:', forceTriggerValue);  // Отладочный вывод
+        } else {
+            console.error('Force trigger checkbox not found');  // Отладочный вывод
+        }
         
         const hotkeyInput = document.getElementById('profileHotkey');
         if (hotkeyInput) {
@@ -478,7 +519,7 @@ class ProfileManager {
         } else {
             console.error('trigger-app-path element not found');
         }
-
+        
         // Показываем редактор
         editor.style.display = 'block';
         editor.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -507,7 +548,7 @@ class ProfileManager {
                         
                         outputData.devices.forEach(device => {
                             const option = document.createElement('option');
-                            option.value = device[0];  // ID устройства
+                            option.value = device[0];  // ID устройсва
                             option.textContent = device[1];  // Имя устройства
                             
                             const optionComm = option.cloneNode(true);
@@ -607,9 +648,19 @@ class ProfileManager {
     }
 }
 
+function setupDevicePolling() {
+    setInterval(async () => {
+        const profileManager = window.profileManager;
+        if (profileManager) {
+            await profileManager.loadDevices();
+        }
+    }, 2000); // Check every 2 seconds
+}
+
 // Initialize ProfileManager after DOM load
 document.addEventListener('DOMContentLoaded', () => {
-    const profileManager = new ProfileManager();
+    window.profileManager = new ProfileManager();
+    setupDevicePolling();
 });
 
 window.addEventListener('themeChange', (event) => {
@@ -620,12 +671,6 @@ window.addEventListener('themeChange', (event) => {
         document.body.classList.remove('light-theme');
     }
 });
-
-function setupDevicePolling() {
-    setInterval(async () => {
-        await loadDevices();
-    }, 2000); // Check every 2 seconds
-}
 
 function showNotification(message, isError = false) {
     const notification = document.createElement('div');

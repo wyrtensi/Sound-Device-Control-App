@@ -500,12 +500,6 @@
         }
 
         .light-theme .device-item {
-            background-color: rgba(255, 255, 255, 0.9);
-            border: 1px solid rgba(0, 0, 0, 0.05);
-            transition: all 0.2s ease;
-        }
-
-        .light-theme .device-item:hover {
             background-color: rgba(255, 255, 255, 1);
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
@@ -1589,6 +1583,47 @@
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
+
+        .force-trigger-container {
+            margin-top: 15px;
+            padding: 15px;
+            background: rgba(51, 51, 51, 0.5);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .force-trigger-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .force-trigger-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .force-trigger-description {
+            margin-top: 8px;
+            font-size: 0.9em;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .light-theme .force-trigger-container {
+            background: rgba(245, 245, 245, 0.9);
+            border-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .light-theme .force-trigger-label {
+            color: #333;
+        }
+
+        .light-theme .force-trigger-description {
+            color: rgba(0, 0, 0, 0.7);
+        }
     </style>
 </head>
 <body>
@@ -1822,6 +1857,18 @@
                     <div class="form-group">
                         <label for="inputCommDevice">Communication Input Device:</label>
                         <select id="inputCommDevice" class="form-control"></select>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="force-trigger-container">
+                            <label class="force-trigger-label">
+                                <input type="checkbox" id="forceTriggerCheckbox" class="force-trigger-checkbox">
+                                Force Trigger App
+                            </label>
+                            <div class="force-trigger-description">
+                                When enabled, it will force application to activate devices listed in the profile and you won't be able to change them manually.
+                            </div>
+                        </div>
                     </div>
 
                     <div class="button-group">
@@ -2526,7 +2573,7 @@
             // Инициализация виртуальной клавиатуры
             const keyboard = new VirtualKeyboard();
 
-            // Добавляем обработчики для всех полей горячих клавиш
+            // Добавляем обработчи��и для всех полей горячих клавиш
             document.querySelectorAll('.hotkey-input').forEach(input => {
                 input.addEventListener('focus', () => keyboard.showKeyboard(input));
             });

@@ -195,7 +195,7 @@ class KeyboardMouseTracker:
         try:
             key_str = None
             
-            # Обработк������ обычных клавиш
+            # Обработк�������� обычных клавиш
             if isinstance(key, keyboard.KeyCode):
                 # Маппинг виртуальных кодов на английские буквы
                 vk_to_eng = {
@@ -548,266 +548,285 @@ def get_audio_devices():
     """Получает список устройств вывода звука"""
     devices = []
     
-    # 1. Основной метод через PowerShell
     try:
-        powershell_path = r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
-        
-        ps_script = """
-        if (-not (Get-Module -ListAvailable -Name AudioDeviceCmdlets)) {
-            Write-Host "ERROR: AudioDeviceCmdlets not installed"
-            exit 1
-        }
-        
-        try {
-            $OutputEncoding = [Console]::OutputEncoding = [Text.Encoding]::UTF8
-            $devices = Get-AudioDevice -List | Where-Object { $_.Type -eq 'Playback' }
-            $devices | ForEach-Object {
-                Write-Output ("DEVICE:{0}|{1}" -f $_.Index, $_.Name)
-            }
-        } catch {
-            Write-Host "Error getting output device list: $_"
-        }
-        """
-        
-        startupinfo = subprocess.STARTUPINFO()
-        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        
-        result = subprocess.run(
-            [powershell_path, "-Command", ps_script],
-            capture_output=True,
-            text=True,
-            encoding='utf-8',
-            creationflags=subprocess.CREATE_NO_WINDOW,
-            startupinfo=startupinfo
-        )
-        
-        for line in result.stdout.split('\n'):
-            if line.strip().startswith('DEVICE:'):
-                try:
-                    _, device_info = line.strip().split('DEVICE:', 1)
-                    index, name = device_info.split('|', 1)
-                    devices.append([index.strip(), name.strip()])
-                except ValueError:
-                    continue
-                    
-        if devices:
-            return devices
-    except Exception as e:
-        print(f"PowerShell method failed: {e}")
-
-    # 2. Резервный метод через pycaw
-    if not devices:
+        pythoncom.CoInitialize()
         try:
-            pythoncom.CoInitialize()
+            # 1. Основной метод через PowerShell
             try:
-                deviceEnumerator = AudioUtilities.GetAllDevices()
-                index = 0
-                for device in deviceEnumerator:
-                    if device.state == 1 and device.flow == 0:  # DEVICE_STATE_ACTIVE = 1, eRender = 0
-                        devices.append([str(index), device.FriendlyName])
-                        index += 1
-            finally:
-                pythoncom.CoUninitialize()
+                powershell_path = r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
                 
-            if devices:
-                print("Using pycaw method for device enumeration")
-                return devices
-        except Exception as e:
-            print(f"Pycaw method failed: {e}")
+                ps_script = """
+                if (-not (Get-Module -ListAvailable -Name AudioDeviceCmdlets)) {
+                    Write-Host "ERROR: AudioDeviceCmdlets not installed"
+                    exit 1
+                }
+                
+                try {
+                    $OutputEncoding = [Console]::OutputEncoding = [Text.Encoding]::UTF8
+                    $devices = Get-AudioDevice -List | Where-Object { $_.Type -eq 'Playback' }
+                    $devices | ForEach-Object {
+                        Write-Output ("DEVICE:{0}|{1}" -f $_.Index, $_.Name)
+                    }
+                } catch {
+                    Write-Host "Error getting output device list: $_"
+                }
+                """
+                
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                
+                result = subprocess.run(
+                    [powershell_path, "-Command", ps_script],
+                    capture_output=True,
+                    text=True,
+                    encoding='utf-8',
+                    creationflags=subprocess.CREATE_NO_WINDOW,
+                    startupinfo=startupinfo
+                )
+                
+                for line in result.stdout.split('\n'):
+                    if line.strip().startswith('DEVICE:'):
+                        try:
+                            _, device_info = line.strip().split('DEVICE:', 1)
+                            index, name = device_info.split('|', 1)
+                            devices.append([index.strip(), name.strip()])
+                        except ValueError:
+                            continue
+                            
+                if devices:
+                    return devices
+            except Exception as e:
+                print(f"PowerShell method failed: {e}")
 
-    # 3. Резервный метод через MMDevice API в PowerShell
-    if not devices:
-        try:
-            ps_script = """
-            Add-Type -TypeDefinition @"
-            using System.Runtime.InteropServices;
-            [Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-            interface IMMDevice {
-                int Activate([MarshalAs(UnmanagedType.LPStruct)] Guid iid, int dwClsCtx, IntPtr pActivationParams, [MarshalAs(UnmanagedType.IUnknown)] out object ppInterface);
-            }
-            [Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-            interface IMMDeviceEnumerator {
-                int EnumAudioEndpoints(int dataFlow, int dwStateMask, out IMMDeviceCollection ppDevices);
-            }
-            [Guid("0BD7A1BE-7A1A-44DB-8397-CC5392387B5E"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-            interface IMMDeviceCollection {
-                int GetCount(out int pcDevices);
-                int Item(int nDevice, out IMMDevice ppDevice);
-            }
+            # 2. Резервный метод через pycaw
+            if not devices:
+                try:
+                    deviceEnumerator = AudioUtilities.GetAllDevices()
+                    index = 0
+                    for device in deviceEnumerator:
+                        if device.state == 1 and device.flow == 0:  # DEVICE_STATE_ACTIVE = 1, eRender = 0
+                            devices.append([str(index), device.FriendlyName])
+                            index += 1
+                            
+                    if devices:
+                        print("Using pycaw method for device enumeration")
+                        return devices
+                except Exception as e:
+                    print(f"Pycaw method failed: {e}")
+
+            # 3. Резервный метод через MMDevice API в PowerShell
+            if not devices:
+                try:
+                    ps_script = """
+                    Add-Type -TypeDefinition @"
+                    using System.Runtime.InteropServices;
+                    [Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+                    interface IMMDevice {
+                        int Activate([MarshalAs(UnmanagedType.LPStruct)] Guid iid, int dwClsCtx, IntPtr pActivationParams, [MarshalAs(UnmanagedType.IUnknown)] out object ppInterface);
+                    }
+                    [Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+                    interface IMMDeviceEnumerator {
+                        int EnumAudioEndpoints(int dataFlow, int dwStateMask, out IMMDeviceCollection ppDevices);
+                    }
+                    [Guid("0BD7A1BE-7A1A-44DB-8397-CC5392387B5E"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+                    interface IMMDeviceCollection {
+                        int GetCount(out int pcDevices);
+                        int Item(int nDevice, out IMMDevice ppDevice);
+                    }
 "@
-            
-            $deviceEnumerator = New-Object -ComObject "MMDeviceEnumerator.MMDeviceEnumerator"
-            $devices = @()
-            $deviceCollection = $deviceEnumerator.EnumAudioEndpoints(0, 1)  # eRender = 0, DEVICE_STATE_ACTIVE = 1
-            
-            for ($i = 0; $i -lt $deviceCollection.Count; $i++) {
-                $device = $deviceCollection.Item($i)
-                $properties = $device.Properties
-                $name = $properties.GetValue("{a45c254e-df1c-4efd-8020-67d146a850e0},2").ToString()
-                Write-Output ("DEVICE:{0}|{1}" -f $i, $name)
-            }
-            """
-            
-            result = subprocess.run(
-                [powershell_path, "-ExecutionPolicy", "Bypass", "-Command", ps_script],
-                capture_output=True,
-                text=True,
-                encoding='utf-8',
-                creationflags=subprocess.CREATE_NO_WINDOW,
-                startupinfo=startupinfo
-            )
-            
-            for line in result.stdout.split('\n'):
-                if line.strip().startswith('DEVICE:'):
-                    try:
-                        _, device_info = line.strip().split('DEVICE:', 1)
-                        index, name = device_info.split('|', 1)
-                        devices.append([index.strip(), name.strip()])
-                    except ValueError:
-                        continue
-                        
-            if devices:
-                print("Using MMDevice API method for device enumeration")
-                return devices
-        except Exception as e:
-            print(f"MMDevice API method failed: {e}")
+                    
+                    $deviceEnumerator = New-Object -ComObject "MMDeviceEnumerator.MMDeviceEnumerator"
+                    $devices = @()
+                    $deviceCollection = $deviceEnumerator.EnumAudioEndpoints(0, 1)  # eRender = 0, DEVICE_STATE_ACTIVE = 1
+                    
+                    for ($i = 0; $i -lt $deviceCollection.Count; $i++) {
+                        $device = $deviceCollection.Item($i)
+                        $properties = $device.Properties
+                        $name = $properties.GetValue("{a45c254e-df1c-4efd-8020-67d146a850e0},2").ToString()
+                        Write-Output ("DEVICE:{0}|{1}" -f $i, $name)
+                    }
+                    """
+                    
+                    result = subprocess.run(
+                        [powershell_path, "-ExecutionPolicy", "Bypass", "-Command", ps_script],
+                        capture_output=True,
+                        text=True,
+                        encoding='utf-8',
+                        creationflags=subprocess.CREATE_NO_WINDOW,
+                        startupinfo=startupinfo
+                    )
+                    
+                    for line in result.stdout.split('\n'):
+                        if line.strip().startswith('DEVICE:'):
+                            try:
+                                _, device_info = line.strip().split('DEVICE:', 1)
+                                index, name = device_info.split('|', 1)
+                                devices.append([index.strip(), name.strip()])
+                            except ValueError:
+                                continue
+                                
+                    if devices:
+                        print("Using MMDevice API method for device enumeration")
+                        return devices
+                except Exception as e:
+                    print(f"MMDevice API method failed: {e}")
+        finally:
+            pythoncom.CoUninitialize()
+    except Exception as e:
+        print(f"Error getting audio devices: {e}")
 
     print("All methods failed to get audio devices")
     return []
 
 def set_default_audio_device(device_index):
     """Устанавливает устройство вывода по умолчанию"""
-    ps_script = f"""
-    try {{
-        $device = Get-AudioDevice -List | Where-Object {{ $_.Index -eq {device_index} }}
-        if ($device) {{
-            Write-Host "Setting default device: $($device.Name)"
-            Set-AudioDevice -ID $device.ID
-        }} else {{
-            Write-Host "Device with index {device_index} not found"
-        }}
-    }} catch {{
-        Write-Host "Error setting default device: $_"
-    }}
-    """
-    
     try:
-        startupinfo = subprocess.STARTUPINFO()
-        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        
-        result = subprocess.run(
-            [r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", "-Command", ps_script],
-            capture_output=True,
-            text=True,
-            encoding='cp866',
-            creationflags=subprocess.CREATE_NO_WINDOW,
-            startupinfo=startupinfo
-        )
-        print(f"PowerShell output: {result.stdout}")
-        if result.stderr:
-            print(f"PowerShell error: {result.stderr}")
+        pythoncom.CoInitialize()
+        try:
+            ps_script = f"""
+            try {{
+                $device = Get-AudioDevice -List | Where-Object {{ $_.Index -eq {device_index} }}
+                if ($device) {{
+                    Write-Host "Setting default device: $($device.Name)"
+                    Set-AudioDevice -ID $device.ID
+                }} else {{
+                    Write-Host "Device with index {device_index} not found"
+                }}
+            }} catch {{
+                Write-Host "Error setting default device: $_"
+            }}
+            """
+            
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            
+            result = subprocess.run(
+                [r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", "-Command", ps_script],
+                capture_output=True,
+                text=True,
+                encoding='cp866',
+                creationflags=subprocess.CREATE_NO_WINDOW,
+                startupinfo=startupinfo
+            )
+            print(f"PowerShell output: {result.stdout}")
+            if result.stderr:
+                print(f"PowerShell error: {result.stderr}")
+        finally:
+            pythoncom.CoUninitialize()
     except Exception as e:
         print(f"Error executing PowerShell: {e}")
 
 def set_default_communication_device(device_index):
     """Устанавливает устройство вывода для связи по умолчанию"""
-    ps_script = f"""
-    try {{
-        $device = Get-AudioDevice -List | Where-Object {{ $_.Index -eq {device_index} }}
-        if ($device) {{
-            Write-Host "Setting communication device: $($device.Name)"
-            Set-AudioDevice -ID $device.ID -Communication
-        }} else {{
-            Write-Host "Device with index {device_index} not found"
-        }}
-    }} catch {{
-        Write-Host "Error setting communication device: $_"
-    }}
-    """
-    
     try:
-        startupinfo = subprocess.STARTUPINFO()
-        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        
-        result = subprocess.run(
-            [r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", "-Command", ps_script],
-            capture_output=True,
-            text=True,
-            encoding='cp866',
-            creationflags=subprocess.CREATE_NO_WINDOW,
-            startupinfo=startupinfo
-        )
-        print(f"PowerShell output: {result.stdout}")
-        if result.stderr:
-            print(f"PowerShell error: {result.stderr}")
+        pythoncom.CoInitialize()
+        try:
+            ps_script = f"""
+            try {{
+                $device = Get-AudioDevice -List | Where-Object {{ $_.Index -eq {device_index} }}
+                if ($device) {{
+                    Write-Host "Setting communication device: $($device.Name)"
+                    Set-AudioDevice -ID $device.ID -Communication
+                }} else {{
+                    Write-Host "Device with index {device_index} not found"
+                }}
+            }} catch {{
+                Write-Host "Error setting communication device: $_"
+            }}
+            """
+            
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            
+            result = subprocess.run(
+                [r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", "-Command", ps_script],
+                capture_output=True,
+                text=True,
+                encoding='cp866',
+                creationflags=subprocess.CREATE_NO_WINDOW,
+                startupinfo=startupinfo
+            )
+            print(f"PowerShell output: {result.stdout}")
+            if result.stderr:
+                print(f"PowerShell error: {result.stderr}")
+        finally:
+            pythoncom.CoUninitialize()
     except Exception as e:
         print(f"Error executing PowerShell: {e}")
 
 def set_default_input_device(device_index):
     """Устаналивает устройство ввода по умолчанию"""
-    ps_script = f"""
-    try {{
-        $device = Get-AudioDevice -List | Where-Object {{ $_.Index -eq {device_index} }}
-        if ($device) {{
-            Write-Host "Setting default input device: $($device.Name)"
-            Set-AudioDevice -ID $device.ID
-        }} else {{
-            Write-Host "Device with index {device_index} not found"
-        }}
-    }} catch {{
-        Write-Host "Error setting default input device: $_"
-    }}
-    """
-    
     try:
-        startupinfo = subprocess.STARTUPINFO()
-        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        
-        result = subprocess.run(
-            [r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", "-Command", ps_script],
-            capture_output=True,
-            text=True,
-            encoding='cp866',
-            creationflags=subprocess.CREATE_NO_WINDOW,
-            startupinfo=startupinfo
-        )
-        print(f"PowerShell output: {result.stdout}")
-        if result.stderr:
-            print(f"PowerShell error: {result.stderr}")
+        pythoncom.CoInitialize()
+        try:
+            ps_script = f"""
+            try {{
+                $device = Get-AudioDevice -List | Where-Object {{ $_.Index -eq {device_index} }}
+                if ($device) {{
+                    Write-Host "Setting default input device: $($device.Name)"
+                    Set-AudioDevice -ID $device.ID
+                }} else {{
+                    Write-Host "Device with index {device_index} not found"
+                }}
+            }} catch {{
+                Write-Host "Error setting default input device: $_"
+            }}
+            """
+            
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            
+            result = subprocess.run(
+                [r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", "-Command", ps_script],
+                capture_output=True,
+                text=True,
+                encoding='cp866',
+                creationflags=subprocess.CREATE_NO_WINDOW,
+                startupinfo=startupinfo
+            )
+            print(f"PowerShell output: {result.stdout}")
+            if result.stderr:
+                print(f"PowerShell error: {result.stderr}")
+        finally:
+            pythoncom.CoUninitialize()
     except Exception as e:
         print(f"Error executing PowerShell: {e}")
 
 def set_default_input_communication_device(device_index):
     """Утанавливает устройство ввода для связи по умолчанию"""
-    ps_script = f"""
-    try {{
-        $device = Get-AudioDevice -List | Where-Object {{ $_.Index -eq {device_index} }}
-        if ($device) {{
-            Write-Host "Setting communication input device: $($device.Name)"
-            Set-AudioDevice -ID $device.ID -Communication
-        }} else {{
-            Write-Host "Device with index {device_index} not found"
-        }}
-    }} catch {{
-        Write-Host "Error setting communication input device: $_"
-    }}
-    """
-    
     try:
-        startupinfo = subprocess.STARTUPINFO()
-        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        
-        result = subprocess.run(
-            [r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", "-Command", ps_script],
-            capture_output=True,
-            text=True,
-            encoding='cp866',
-            creationflags=subprocess.CREATE_NO_WINDOW,
-            startupinfo=startupinfo
-        )
-        print(f"PowerShell output: {result.stdout}")
-        if result.stderr:
-            print(f"PowerShell error: {result.stderr}")
+        pythoncom.CoInitialize()
+        try:
+            ps_script = f"""
+            try {{
+                $device = Get-AudioDevice -List | Where-Object {{ $_.Index -eq {device_index} }}
+                if ($device) {{
+                    Write-Host "Setting communication input device: $($device.Name)"
+                    Set-AudioDevice -ID $device.ID -Communication
+                }} else {{
+                    Write-Host "Device with index {device_index} not found"
+                }}
+            }} catch {{
+                Write-Host "Error setting communication input device: $_"
+            }}
+            """
+            
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            
+            result = subprocess.run(
+                [r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", "-Command", ps_script],
+                capture_output=True,
+                text=True,
+                encoding='cp866',
+                creationflags=subprocess.CREATE_NO_WINDOW,
+                startupinfo=startupinfo
+            )
+            print(f"PowerShell output: {result.stdout}")
+            if result.stderr:
+                print(f"PowerShell error: {result.stderr}")
+        finally:
+            pythoncom.CoUninitialize()
     except Exception as e:
         print(f"Error executing PowerShell: {e}")
 
@@ -832,7 +851,7 @@ def create_notification_icon(icon_type='speaker', size=64):
         draw.ellipse([x0, y0, x1, y1], fill=color)
 
     if icon_type == 'speaker':
-        # Рисуем динамик (белый)
+        # Рисуем динамик (бе��ый)
         speaker_color = (255, 255, 255, 255)
         
         # Прямоугольник динамика
@@ -1149,7 +1168,7 @@ def load_enabled_devices():
         save_enabled_devices()
 
 def save_enabled_devices():
-    """Сохраняет список актвых устройств в файл"""
+    """Сохраняет список актвы�� устройств в файл"""
     try:
         with open('enabled_devices.json', 'w') as f:
             json.dump(list(enabled_devices), f)
@@ -1184,52 +1203,56 @@ def switch_audio_device(direction):
     """Переключает устройство вывода звука"""
     global current_device_index, devices, enabled_devices
     try:
-        if not devices:
-            devices = get_audio_devices()
-            if not devices:
-                return
-        
-        if not enabled_devices:
-            enabled_devices.update(device[0] for device in devices)
-            save_enabled_devices()
-            
-        active_devices = [device for device in devices if device[0] in enabled_devices]
-        
-        if not active_devices:
-            return
-            
-        if current_device_index >= len(devices) or current_device_index < 0:
-            current_device_index = 0
-            
+        pythoncom.CoInitialize()
         try:
-            current_device = next((device for device in active_devices 
-                                if device[0] == devices[current_device_index][0]), 
-                                active_devices[0])
+            if not devices:
+                devices = get_audio_devices()
+                if not devices:
+                    return
             
-            current_active_index = active_devices.index(current_device)
+            if not enabled_devices:
+                enabled_devices.update(device[0] for device in devices)
+                save_enabled_devices()
+                
+            active_devices = [device for device in devices if device[0] in enabled_devices]
             
-            if direction == 'prev':
-                next_active_index = (current_active_index - 1) % len(active_devices)
-            else:
-                next_active_index = (current_active_index + 1) % len(active_devices)
-            
-            next_device = active_devices[next_active_index]
-            
-            current_device_index = next(i for i, device in enumerate(devices) 
-                                    if device[0] == next_device[0])
-            
-            set_default_audio_device(next_device[0])
-            
-            Thread(target=show_notification, args=(f"Switched to: {next_device[1]}",)).start()
-            
-        except Exception as e:
-            if active_devices:
+            if not active_devices:
+                return
+                
+            if current_device_index >= len(devices) or current_device_index < 0:
+                current_device_index = 0
+                
+            try:
+                current_device = next((device for device in active_devices 
+                                    if device[0] == devices[current_device_index][0]), 
+                                    active_devices[0])
+                
+                current_active_index = active_devices.index(current_device)
+                
+                if direction == 'prev':
+                    next_active_index = (current_active_index - 1) % len(active_devices)
+                else:
+                    next_active_index = (current_active_index + 1) % len(active_devices)
+                
+                next_device = active_devices[next_active_index]
+                
                 current_device_index = next(i for i, device in enumerate(devices) 
-                                        if device[0] == active_devices[0][0])
-                set_default_audio_device(active_devices[0][0])
-        
+                                        if device[0] == next_device[0])
+                
+                set_default_audio_device(next_device[0])
+                
+                Thread(target=show_notification, args=(f"Switched to: {next_device[1]}",)).start()
+                
+            except Exception as e:
+                if active_devices:
+                    current_device_index = next(i for i, device in enumerate(devices) 
+                                            if device[0] == active_devices[0][0])
+                    set_default_audio_device(active_devices[0][0])
+        finally:
+            pythoncom.CoUninitialize()
+            
     except Exception as e:
-        print(f"Error switching device: {e}")
+        print(f"Error switching audio device: {e}")
 
 def create_icon():
     width = 128
@@ -1277,7 +1300,7 @@ class SystemTray:
     def __init__(self):
         self.log("Initializing SystemTray...")
         
-        # Создаем иконку
+        # Создаем ико��ку
         try:
             icon_size = 64
             image = Image.new('RGBA', (icon_size, icon_size), (0, 0, 0, 0))
@@ -1549,129 +1572,132 @@ def get_input_devices():
     """Получает список устройств ввода звука"""
     devices = []
     
-    # 1. Основной метод через PowerShell
     try:
-        powershell_path = r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
-        
-        ps_script = """
-        if (-not (Get-Module -ListAvailable -Name AudioDeviceCmdlets)) {
-            Write-Host "ERROR: AudioDeviceCmdlets not installed"
-            exit 1
-        }
-        
-        try {
-            $OutputEncoding = [Console]::OutputEncoding = [Text.Encoding]::UTF8
-            $devices = Get-AudioDevice -List | Where-Object { $_.Type -eq 'Recording' }
-            $devices | ForEach-Object {
-                Write-Output ("DEVICE:{0}|{1}" -f $_.Index, $_.Name)
-            }
-        } catch {
-            Write-Host "Error getting input device list: $_"
-        }
-        """
-        
-        startupinfo = subprocess.STARTUPINFO()
-        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        
-        result = subprocess.run(
-            [powershell_path, "-Command", ps_script],
-            capture_output=True,
-            text=True,
-            encoding='utf-8',
-            creationflags=subprocess.CREATE_NO_WINDOW,
-            startupinfo=startupinfo
-        )
-        
-        for line in result.stdout.split('\n'):
-            if line.strip().startswith('DEVICE:'):
-                try:
-                    _, device_info = line.strip().split('DEVICE:', 1)
-                    index, name = device_info.split('|', 1)
-                    devices.append([index.strip(), name.strip()])
-                except ValueError:
-                    continue
-                    
-        if devices:
-            return devices
-    except Exception as e:
-        print(f"PowerShell method failed: {e}")
-
-    # 2. Резервный метод через pycaw
-    if not devices:
+        pythoncom.CoInitialize()
         try:
-            pythoncom.CoInitialize()
+            # 1. Основной метод через PowerShell
             try:
-                deviceEnumerator = AudioUtilities.GetAllDevices()
-                index = 0
-                for device in deviceEnumerator:
-                    if device.state == 1 and device.flow == 1:  # DEVICE_STATE_ACTIVE = 1, eCapture = 1
-                        devices.append([str(index), device.FriendlyName])
-                        index += 1
-            finally:
-                pythoncom.CoUninitialize()
+                powershell_path = r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
                 
-            if devices:
-                print("Using pycaw method for input device enumeration")
-                return devices
-        except Exception as e:
-            print(f"Pycaw method failed: {e}")
+                ps_script = """
+                if (-not (Get-Module -ListAvailable -Name AudioDeviceCmdlets)) {
+                    Write-Host "ERROR: AudioDeviceCmdlets not installed"
+                    exit 1
+                }
+                
+                try {
+                    $OutputEncoding = [Console]::OutputEncoding = [Text.Encoding]::UTF8
+                    $devices = Get-AudioDevice -List | Where-Object { $_.Type -eq 'Recording' }
+                    $devices | ForEach-Object {
+                        Write-Output ("DEVICE:{0}|{1}" -f $_.Index, $_.Name)
+                    }
+                } catch {
+                    Write-Host "Error getting input device list: $_"
+                }
+                """
+                
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                
+                result = subprocess.run(
+                    [powershell_path, "-Command", ps_script],
+                    capture_output=True,
+                    text=True,
+                    encoding='utf-8',
+                    creationflags=subprocess.CREATE_NO_WINDOW,
+                    startupinfo=startupinfo
+                )
+                
+                for line in result.stdout.split('\n'):
+                    if line.strip().startswith('DEVICE:'):
+                        try:
+                            _, device_info = line.strip().split('DEVICE:', 1)
+                            index, name = device_info.split('|', 1)
+                            devices.append([index.strip(), name.strip()])
+                        except ValueError:
+                            continue
+                            
+                if devices:
+                    return devices
+            except Exception as e:
+                print(f"PowerShell method failed: {e}")
 
-    # 3. Резервный метод через MMDevice API в PowerShell
-    if not devices:
-        try:
-            ps_script = """
-            Add-Type -TypeDefinition @"
-            using System.Runtime.InteropServices;
-            [Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-            interface IMMDevice {
-                int Activate([MarshalAs(UnmanagedType.LPStruct)] Guid iid, int dwClsCtx, IntPtr pActivationParams, [MarshalAs(UnmanagedType.IUnknown)] out object ppInterface);
-            }
-            [Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-            interface IMMDeviceEnumerator {
-                int EnumAudioEndpoints(int dataFlow, int dwStateMask, out IMMDeviceCollection ppDevices);
-            }
-            [Guid("0BD7A1BE-7A1A-44DB-8397-CC5392387B5E"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-            interface IMMDeviceCollection {
-                int GetCount(out int pcDevices);
-                int Item(int nDevice, out IMMDevice ppDevice);
-            }
+            # 2. Резервный метод через pycaw
+            if not devices:
+                try:
+                    deviceEnumerator = AudioUtilities.GetAllDevices()
+                    index = 0
+                    for device in deviceEnumerator:
+                        if device.state == 1 and device.flow == 1:  # DEVICE_STATE_ACTIVE = 1, eCapture = 1
+                            devices.append([str(index), device.FriendlyName])
+                            index += 1
+                            
+                    if devices:
+                        print("Using pycaw method for input device enumeration")
+                        return devices
+                except Exception as e:
+                    print(f"Pycaw method failed: {e}")
+
+            # 3. Резервный метод через MMDevice API в PowerShell
+            if not devices:
+                try:
+                    ps_script = """
+                    Add-Type -TypeDefinition @"
+                    using System.Runtime.InteropServices;
+                    [Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+                    interface IMMDevice {
+                        int Activate([MarshalAs(UnmanagedType.LPStruct)] Guid iid, int dwClsCtx, IntPtr pActivationParams, [MarshalAs(UnmanagedType.IUnknown)] out object ppInterface);
+                    }
+                    [Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+                    interface IMMDeviceEnumerator {
+                        int EnumAudioEndpoints(int dataFlow, int dwStateMask, out IMMDeviceCollection ppDevices);
+                    }
+                    [Guid("0BD7A1BE-7A1A-44DB-8397-CC5392387B5E"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+                    interface IMMDeviceCollection {
+                        int GetCount(out int pcDevices);
+                        int Item(int nDevice, out IMMDevice ppDevice);
+                    }
 "@
-            
-            $deviceEnumerator = New-Object -ComObject "MMDeviceEnumerator.MMDeviceEnumerator"
-            $devices = @()
-            $deviceCollection = $deviceEnumerator.EnumAudioEndpoints(1, 1)  # eCapture = 1, DEVICE_STATE_ACTIVE = 1
-            
-            for ($i = 0; $i -lt $deviceCollection.Count; $i++) {
-                $device = $deviceCollection.Item($i)
-                $properties = $device.Properties
-                $name = $properties.GetValue("{a45c254e-df1c-4efd-8020-67d146a850e0},2").ToString()
-                Write-Output ("DEVICE:{0}|{1}" -f $i, $name)
-            }
-            """
-            
-            result = subprocess.run(
-                [powershell_path, "-ExecutionPolicy", "Bypass", "-Command", ps_script],
-                capture_output=True,
-                text=True,
-                encoding='utf-8',
-                creationflags=subprocess.CREATE_NO_WINDOW,
-                startupinfo=startupinfo
-            )
-            
-            for line in result.stdout.split('\n'):
-                if line.strip().startswith('DEVICE:'):
-                    try:
-                        _, device_info = line.strip().split('DEVICE:', 1)
-                        index, name = device_info.split('|', 1)
-                        devices.append([index.strip(), name.strip()])
-                    except ValueError:
-                        continue
-                        
-            if devices:
-                print("Using MMDevice API method for input device enumeration")
-                return devices
-        except Exception as e:
-            print(f"MMDevice API method failed: {e}")
+                    
+                    $deviceEnumerator = New-Object -ComObject "MMDeviceEnumerator.MMDeviceEnumerator"
+                    $devices = @()
+                    $deviceCollection = $deviceEnumerator.EnumAudioEndpoints(1, 1)  # eCapture = 1, DEVICE_STATE_ACTIVE = 1
+                    
+                    for ($i = 0; $i -lt $deviceCollection.Count; $i++) {
+                        $device = $deviceCollection.Item($i)
+                        $properties = $device.Properties
+                        $name = $properties.GetValue("{a45c254e-df1c-4efd-8020-67d146a850e0},2").ToString()
+                        Write-Output ("DEVICE:{0}|{1}" -f $i, $name)
+                    }
+                    """
+                    
+                    result = subprocess.run(
+                        [powershell_path, "-ExecutionPolicy", "Bypass", "-Command", ps_script],
+                        capture_output=True,
+                        text=True,
+                        encoding='utf-8',
+                        creationflags=subprocess.CREATE_NO_WINDOW,
+                        startupinfo=startupinfo
+                    )
+                    
+                    for line in result.stdout.split('\n'):
+                        if line.strip().startswith('DEVICE:'):
+                            try:
+                                _, device_info = line.strip().split('DEVICE:', 1)
+                                index, name = device_info.split('|', 1)
+                                devices.append([index.strip(), name.strip()])
+                            except ValueError:
+                                continue
+                                
+                    if devices:
+                        print("Using MMDevice API method for input device enumeration")
+                        return devices
+                except Exception as e:
+                    print(f"MMDevice API method failed: {e}")
+        finally:
+            pythoncom.CoUninitialize()
+    except Exception as e:
+        print(f"Error getting input devices: {e}")
 
     print("All methods failed to get input devices")
     return []
@@ -1680,40 +1706,44 @@ def switch_input_device(direction):
     """Переключает устройство ввода звука"""
     global current_input_device_index, input_devices, enabled_input_devices
     try:
-        if not input_devices:
-            input_devices = get_input_devices()
-            if not input_devices:
-                return
-            
-        active_devices = [device for device in input_devices if device[0] in enabled_input_devices]
-        
-        if not active_devices:
-            return
-            
+        pythoncom.CoInitialize()
         try:
-            current_device = next((device for device in active_devices 
-                                if device[0] == input_devices[current_input_device_index][0]), 
-                                active_devices[0])
+            if not input_devices:
+                input_devices = get_input_devices()
+                if not input_devices:
+                    return
+                
+            active_devices = [device for device in input_devices if device[0] in enabled_input_devices]
             
-            current_active_index = active_devices.index(current_device)
+            if not active_devices:
+                return
+                
+            try:
+                current_device = next((device for device in active_devices 
+                                    if device[0] == input_devices[current_input_device_index][0]), 
+                                    active_devices[0])
+                
+                current_active_index = active_devices.index(current_device)
+                
+                if direction == 'prev':
+                    next_active_index = (current_active_index - 1) % len(active_devices)
+                else:
+                    next_active_index = (current_active_index + 1) % len(active_devices)
+                
+                next_device = active_devices[next_active_index]
+                
+                current_input_device_index = next(i for i, device in enumerate(input_devices) 
+                                              if device[0] == next_device[0])
+                
+                set_default_input_device(next_device[0])
+                
+                show_notification(f"Input switched to: {next_device[1]}", 'microphone')
+                
+            except Exception as e:
+                print(f"Error during input device switching: {e}")
+        finally:
+            pythoncom.CoUninitialize()
             
-            if direction == 'prev':
-                next_active_index = (current_active_index - 1) % len(active_devices)
-            else:
-                next_active_index = (current_active_index + 1) % len(active_devices)
-            
-            next_device = active_devices[next_active_index]
-            
-            current_input_device_index = next(i for i, device in enumerate(input_devices) 
-                                          if device[0] == next_device[0])
-            
-            set_default_input_device(next_device[0])
-            
-            show_notification(f"Input switched to: {next_device[1]}", 'microphone')
-            
-        except Exception as e:
-            print(f"Error during input device switching: {e}")
-        
     except Exception as e:
         print(f"Error switching input device: {e}")
 
@@ -1981,7 +2011,7 @@ def register_device_callback(callback):
     device_update_callbacks.append(callback)
 
 def notify_device_changes():
-    """Уведомляет все зарегистрированные функции об изменении устройств"""
+    """Уведомляет все зарегистриованные функции об изменении устройств"""
     global devices, input_devices
     devices = get_audio_devices()
     input_devices = get_input_devices()
@@ -2038,7 +2068,7 @@ class DeviceChangeListener:
         if self.hwnd:
             win32gui.DestroyWindow(self.hwnd)
 
-# Добавляем класс для рботы с профилями
+# Добавляем класс для р��оты с профилями
 class DeviceProfile:
     def __init__(self, name):
         self.name = name
@@ -2098,6 +2128,9 @@ class ProfileManager:
     def add_profile(self, profile):
         if any(p['name'] == profile['name'] for p in self.profiles):
             return False
+        # Добавляем поле force_trigger со значением по умолчанию False
+        if 'force_trigger' not in profile:
+            profile['force_trigger'] = False
         self.profiles.append(profile)
         self.save_profiles()
         return True
@@ -2141,64 +2174,98 @@ def toggle_sound_volume():
         pythoncom.CoUninitialize()
 
 def monitor_processes():
-    """Отслеживает запущенные процессы и активирует соответствующие профили"""
-    global profile_manager, running
-    last_error_time = 0
+    """Мониторит процессы и активирует профили при необходимости"""
+    global running
+    
+    last_error_time = 0  # Время последней ошибки
     error_cooldown = 60  # Минимальный интервал между повторными ошибками в секундах
     activated_apps = set()  # Множество для хранения уже активированных приложений
+    force_activated_apps = {}  # Словарь для хранения состояния force-активированных приложений
+    current_devices = {}  # Словарь для хранения текущих устройств
     
     while running:
         try:
-            # Получаем список всех запущенных процессов
-            running_processes = set()
-            for proc in psutil.process_iter(['name', 'exe']):
-                try:
-                    proc_info = proc.info
-                    if proc_info['exe']:
-                        running_processes.add(proc_info['exe'].lower())
-                        running_processes.add(os.path.basename(proc_info['exe']).lower())
-                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-                    continue
-                except Exception as e:
-                    print(f"Error processing process: {e}")
-                    continue
-
-            # Проверяем профили и активируем при необходимости
-            for profile in profile_manager.profiles:
-                try:
-                    if profile.get('trigger_app'):
-                        trigger_app = profile['trigger_app'].lower()
-                        trigger_app_name = os.path.basename(trigger_app).lower()
-                        
-                        # Проверяем, запущено ли приложение
-                        app_running = trigger_app in running_processes or trigger_app_name in running_processes
-                        app_key = f"{trigger_app}|{trigger_app_name}"
-                        
-                        if app_running:
-                            # Если приложение не было активировано ранее
-                            if app_key not in activated_apps:
-                                print(f"Activating profile {profile['name']} by trigger app")
-                                if activate_profile(profile['name']):
-                                    show_notification(f"Profile activated: {profile['name']}")
-                                    activated_apps.add(app_key)
-                                else:
-                                    print(f"Failed to activate profile: {profile['name']}")
-                        else:
-                            # Если приложение больше не запущено, удаляем его из активированных
-                            activated_apps.discard(app_key)
-                            
-                except Exception as e:
-                    current_time = time.time()
-                    if current_time - last_error_time > error_cooldown:
-                        print(f"Error processing profile {profile.get('name', 'unknown')}: {e}")
-                        last_error_time = current_time
-                        
-            time.sleep(2)  # Проверяем каждые 2 секунды
+            # Получаем текущие устройства
+            new_devices = {
+                'output_default': get_default_output_device(),
+                'output_communication': get_default_communication_output_device(),
+                'input_default': get_default_input_device(),
+                'input_communication': get_default_communication_input_device()
+            }
             
+            # Проверяем, изменились ли устройства
+            devices_changed = current_devices != new_devices
+            if devices_changed:
+                current_devices = new_devices.copy()
+            
+            # Проверяем каждый профиль
+            for profile in profile_manager.get_profiles():
+                if not profile.get('trigger_app'):
+                    continue
+                    
+                app_key = profile['trigger_app'].lower()
+                app_running = is_process_running(app_key)
+                force_mode = profile.get('force_trigger', False)
+                
+                if app_running:
+                    if force_mode:
+                        # В режиме force активируем профиль в двух случаях:
+                        # 1. Приложение только что запустилось
+                        # 2. Устройства изменились на отличные от указанных в профиле
+                        should_activate = False
+                        
+                        # Проверяем, запущено ли приложение впервые
+                        if app_key not in force_activated_apps:
+                            should_activate = True
+                            force_activated_apps[app_key] = {
+                                'profile': profile.copy(),
+                                'devices': new_devices.copy()
+                            }
+                        else:
+                            # Проверяем, изменились ли устройства на отличные от профиля
+                            if devices_changed:
+                                current_profile_devices = {
+                                    'output_default': profile['output_default'],
+                                    'output_communication': profile['output_communication'],
+                                    'input_default': profile['input_default'],
+                                    'input_communication': profile['input_communication']
+                                }
+                                
+                                # Проверяем, что текущие устройства отличаются от профиля
+                                # и что последняя активация не была только что
+                                if (any(new_devices[key] != current_profile_devices[key] 
+                                       for key in new_devices 
+                                       if current_profile_devices[key]) and  # Проверяем только заполненные поля
+                                    force_activated_apps[app_key]['devices'] != new_devices):
+                                    should_activate = True
+                                    force_activated_apps[app_key]['devices'] = new_devices.copy()
+                        
+                        if should_activate:
+                            print(f"Activating force mode profile {profile['name']} by trigger app")
+                            if activate_profile(profile['name']):
+                                show_notification(f"Profile activated: {profile['name']}")
+                            else:
+                                print(f"Failed to activate profile: {profile['name']}")
+                    else:
+                        # В обычном режиме активируем только если приложение не было активировано
+                        if app_key not in activated_apps:
+                            print(f"Activating profile {profile['name']} by trigger app")
+                            if activate_profile(profile['name']):
+                                show_notification(f"Profile activated: {profile['name']}")
+                                activated_apps.add(app_key)
+                            else:
+                                print(f"Failed to activate profile: {profile['name']}")
+                else:
+                    # Если приложение больше не запущено, удаляем его из активированных
+                    activated_apps.discard(app_key)
+                    force_activated_apps.pop(app_key, None)
+                    
+            time.sleep(2)  # Проверяем каждые 2 секунды
+                    
         except Exception as e:
             current_time = time.time()
             if current_time - last_error_time > error_cooldown:
-                print(f"Error in process monitoring: {e}")
+                print(f"Error in monitor_processes: {e}")
                 last_error_time = current_time
             time.sleep(5)  # В случае ошибки ждем подольше
 
@@ -2336,12 +2403,16 @@ def handle_profiles():
             if os.path.exists(profiles_file):
                 with open(profiles_file, 'r') as f:
                     profiles = json.load(f)
+                    # Создаем копию профилей, чтобы не модифицировать оригинальные данные
+                    profiles_response = []
                     for profile in profiles:
-                        if profile.get('trigger_app'):
-                            profile['trigger_app'] = get_filename_from_path(profile['trigger_app'])
+                        profile_copy = profile.copy()  # Копируем все поля
+                        if profile_copy.get('trigger_app'):
+                            profile_copy['trigger_app'] = get_filename_from_path(profile_copy['trigger_app'])
+                        profiles_response.append(profile_copy)
             else:
-                profiles = []
-            return jsonify({'status': 'success', 'profiles': profiles})
+                profiles_response = []
+            return jsonify({'status': 'success', 'profiles': profiles_response})
         except Exception as e:
             print(f"Error loading profiles: {e}")
             return jsonify({'status': 'error', 'message': str(e)}), 500
@@ -2386,7 +2457,8 @@ def handle_profiles():
                 'input_default': profile_data.get('input_default', ''),
                 'input_communication': profile_data.get('input_communication', ''),
                 'hotkey': profile_data.get('hotkey', {'keyboard': 'None', 'mouse': 'None'}),
-                'trigger_app': profile_data.get('trigger_app')
+                'trigger_app': profile_data.get('trigger_app'),
+                'force_trigger': profile_data.get('force_trigger', False)
             }
             
             print(f"Processed profile data: {new_profile}")
@@ -2591,6 +2663,83 @@ def install_audio_cmdlets():
                 
     except Exception as e:
         print(f"Error checking/installing AudioDeviceCmdlets: {e}")
+
+def get_default_output_device():
+    """Получает текущее устройство вывода по умолчанию"""
+    try:
+        pythoncom.CoInitialize()
+        try:
+            devices = AudioUtilities.GetSpeakers()
+            if devices:
+                return devices.GetId()
+        finally:
+            pythoncom.CoUninitialize()
+    except Exception as e:
+        print(f"Error getting default output device: {e}")
+    return None
+
+def get_default_communication_output_device():
+    """Получает текущее устройство вывода для связи по умолчанию"""
+    try:
+        pythoncom.CoInitialize()
+        try:
+            devices = AudioUtilities.GetSpeakers()
+            if devices:
+                return devices.GetId()
+        finally:
+            pythoncom.CoUninitialize()
+    except Exception as e:
+        print(f"Error getting default communication output device: {e}")
+    return None
+
+def get_default_input_device():
+    """Получает текущее устройство ввода по умолчанию"""
+    try:
+        pythoncom.CoInitialize()
+        try:
+            devices = AudioUtilities.GetMicrophone()
+            if devices:
+                return devices.GetId()
+        finally:
+            pythoncom.CoUninitialize()
+    except Exception as e:
+        print(f"Error getting default input device: {e}")
+    return None
+
+def get_default_communication_input_device():
+    """Получает текущее устройство ввода для связи по умолчанию"""
+    try:
+        pythoncom.CoInitialize()
+        try:
+            devices = AudioUtilities.GetMicrophone()
+            if devices:
+                return devices.GetId()
+        finally:
+            pythoncom.CoUninitialize()
+    except Exception as e:
+        print(f"Error getting default communication input device: {e}")
+    return None
+
+def is_process_running(process_path):
+    """Проверяет, запущен ли процесс"""
+    try:
+        process_name = os.path.basename(process_path).lower()
+        for proc in psutil.process_iter(['name', 'exe']):
+            try:
+                proc_info = proc.info
+                if proc_info['exe']:
+                    if proc_info['exe'].lower() == process_path.lower() or \
+                       os.path.basename(proc_info['exe']).lower() == process_name:
+                        return True
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                continue
+            except Exception as e:
+                print(f"Error checking process: {e}")
+                continue
+        return False
+    except Exception as e:
+        print(f"Error in is_process_running: {e}")
+        return False
 
 if __name__ == "__main__":
     main()
