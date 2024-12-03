@@ -532,7 +532,7 @@ def handle_hotkeys(tracker):
                     'mouse': profile['hotkey'].get('mouse', 'None')
                 }
                 
-                if current_time - last_action_time.get(f'profile_{profile["name"]}', 0) < 0.2:  # Увеличиваем задержку
+                if current_time - last_action_time.get(f'profile_{profile["name"]}', 0) < 0.2:  # Задержка для профилей
                     continue
                     
                 if check_hotkey_combination(profile_combo, state):
@@ -542,7 +542,10 @@ def handle_hotkeys(tracker):
             
             # Проверяем остальные горячие клавиши
             for action, combo in hotkeys.items():
-                if current_time - last_action_time.get(action, 0) < 0.2:  # Увеличиваем задержку
+                # Определяем задержку в зависимости от действия
+                delay = 0.09 if action in ['volume_up', 'volume_down'] else 0.2
+                
+                if current_time - last_action_time.get(action, 0) < delay:
                     continue
                 
                 if combo['keyboard'].lower() == 'none' and combo['mouse'].lower() == 'none':
