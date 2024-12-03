@@ -349,4 +349,15 @@ h3::after {
     min-width: 40px;
     padding: 8px;
 }
+
+.device-current {
+    color: #dc3545;
+    font-size: 0.9em;
+    margin-left: 10px;
+    font-weight: 500;
+}
+
+.light-theme .device-current {
+    color: #dc3545;
+}
  

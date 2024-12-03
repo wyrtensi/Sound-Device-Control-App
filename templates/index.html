@@ -729,7 +729,7 @@
         }
 
         .light-theme .device-type {
-            color: #0056b3;  /* Темно-синий цвет для светлой темы */
+            color: #0056b3;  /* Темно-с��ний цвет для светлой темы */
         }
 
         .profile-hotkey {
@@ -1624,6 +1624,161 @@
         .light-theme .force-trigger-description {
             color: rgba(0, 0, 0, 0.7);
         }
+
+        .reset-memory-container {
+            display: flex;
+            justify-content: center;
+            margin: 30px 0;
+        }
+
+        .reset-memory-btn {
+            padding: 12px 25px;
+            background: rgba(51, 51, 51, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: #4A9EFF;
+            font-size: 0.95em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .reset-memory-btn:hover {
+            background: rgba(74, 158, 255, 0.1);
+            border-color: rgba(74, 158, 255, 0.3);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .reset-memory-btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .light-theme .reset-memory-btn {
+            background: rgba(255, 255, 255, 0.9);
+            color: #0056b3;
+            border-color: rgba(0, 86, 179, 0.2);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .light-theme .reset-memory-btn:hover {
+            background: rgba(0, 86, 179, 0.1);
+            border-color: rgba(0, 86, 179, 0.4);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-content {
+            position: absolute;
+            background: var(--modal-bg, rgba(45, 45, 45, 0.95));
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            min-width: 300px;
+            transition: transform 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .light-theme .modal-content {
+            --modal-bg: rgba(255, 255, 255, 0.95);
+            --modal-text: #333333;
+            --modal-warning: #dc3545;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            border-color: rgba(0, 0, 0, 0.1);
+        }
+
+        .modal-warning {
+            color: var(--modal-warning, #ff4444);
+            font-size: 1.1em;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .modal-btn {
+            padding: 10px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .apply-btn {
+            background: #4A9EFF;
+            color: white;
+            box-shadow: 0 4px 15px rgba(74, 158, 255, 0.3);
+        }
+
+        .apply-btn:hover {
+            background: #3d8ae6;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(74, 158, 255, 0.4);
+        }
+
+        .cancel-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--modal-text, #ffffff);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .cancel-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .modal-btn:active {
+            transform: translateY(1px);
+        }
+
+        .light-theme .cancel-btn {
+            background: rgba(0, 0, 0, 0.05);
+            border-color: rgba(0, 0, 0, 0.1);
+            color: #666;
+        }
+
+        .light-theme .cancel-btn:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        /* Remove these styles */
+        .checkbox-wrapper {
+            display: none;
+        }
+
+        .checkbox-wrapper input[type="checkbox"] {
+            display: none;
+        }
+
+        .checkbox-wrapper label {
+            display: none;
+        }
+
+        .light-theme .checkbox-wrapper label {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -1654,31 +1809,31 @@
         </div>
 
         <form id="hotkeyForm">
-            <!-- Output Devices Section -->
+            <!-- Output Devices Control -->
             <div class="device-section">
                 <h2>Output Devices Control</h2>
                 <div class="device-control-group">
                     <h3>Output Devices</h3>
-                    <div id="outputDevicesList" class="devices-list">
-                        <!-- Устройства будут добавлены через JavaScript -->
+                    <div id="outputDevices" class="devices-list">
+                        <!-- Device items will be inserted here by JavaScript -->
                     </div>
                 </div>
-
                 <div class="hotkey-group">
                     <label class="hotkey-label">Next Output Device</label>
                     <input type="text" 
                            class="hotkey-input" 
+                           id="nextOutputHotkey"
                            data-action="next_device" 
                            data-keyboard="{{ hotkeys.next_device.keyboard }}"
                            data-mouse="{{ hotkeys.next_device.mouse }}"
                            value="{{ hotkeys.next_device.keyboard if hotkeys.next_device.keyboard != 'None' }}{{ '+' if hotkeys.next_device.keyboard != 'None' and hotkeys.next_device.mouse != 'None' }}{{ hotkeys.next_device.mouse if hotkeys.next_device.mouse != 'None' }}"
                            readonly>
                 </div>
-
                 <div class="hotkey-group">
                     <label class="hotkey-label">Previous Output Device</label>
                     <input type="text" 
                            class="hotkey-input" 
+                           id="prevOutputHotkey"
                            data-action="prev_device" 
                            data-keyboard="{{ hotkeys.prev_device.keyboard }}"
                            data-mouse="{{ hotkeys.prev_device.mouse }}"
@@ -1687,47 +1842,67 @@
                 </div>
             </div>
 
-            <!-- Input Devices Section -->
+            <!-- Input Devices Control -->
             <div class="device-section">
                 <h2>Input Devices Control</h2>
                 <div class="device-control-group">
                     <h3>Input Devices</h3>
-                    <div id="inputDevicesList" class="devices-list">
-                        <!-- Устройства будут добавлены через JavaScript -->
+                    <div id="inputDevices" class="devices-list">
+                        <!-- Device items will be inserted here by JavaScript -->
                     </div>
                 </div>
-
                 <div class="hotkey-group">
                     <label class="hotkey-label">Next Input Device</label>
                     <input type="text" 
                            class="hotkey-input" 
+                           id="nextInputHotkey"
                            data-action="next_input_device" 
                            data-keyboard="{{ hotkeys.next_input_device.keyboard }}"
                            data-mouse="{{ hotkeys.next_input_device.mouse }}"
                            value="{{ hotkeys.next_input_device.keyboard if hotkeys.next_input_device.keyboard != 'None' }}{{ '+' if hotkeys.next_input_device.keyboard != 'None' and hotkeys.next_input_device.mouse != 'None' }}{{ hotkeys.next_input_device.mouse if hotkeys.next_input_device.mouse != 'None' }}"
                            readonly>
                 </div>
-
                 <div class="hotkey-group">
                     <label class="hotkey-label">Previous Input Device</label>
                     <input type="text" 
                            class="hotkey-input" 
+                           id="prevInputHotkey"
                            data-action="prev_input_device" 
                            data-keyboard="{{ hotkeys.prev_input_device.keyboard }}"
                            data-mouse="{{ hotkeys.prev_input_device.mouse }}"
                            value="{{ hotkeys.prev_input_device.keyboard if hotkeys.prev_input_device.keyboard != 'None' }}{{ '+' if hotkeys.prev_input_device.keyboard != 'None' and hotkeys.prev_input_device.mouse != 'None' }}{{ hotkeys.prev_input_device.mouse if hotkeys.prev_input_device.mouse != 'None' }}"
                            readonly>
                 </div>
-
                 <div class="hotkey-group">
                     <label class="hotkey-label">Toggle Microphone Volume</label>
                     <input type="text" 
                            class="hotkey-input" 
+                           id="toggleMicHotkey"
                            data-action="toggle_mic_volume" 
                            data-keyboard="{{ hotkeys.toggle_mic_volume.keyboard }}"
                            data-mouse="{{ hotkeys.toggle_mic_volume.mouse }}"
                            value="{{ hotkeys.toggle_mic_volume.keyboard if hotkeys.toggle_mic_volume.keyboard != 'None' }}{{ '+' if hotkeys.toggle_mic_volume.keyboard != 'None' and hotkeys.toggle_mic_volume.mouse != 'None' }}{{ hotkeys.toggle_mic_volume.mouse if hotkeys.toggle_mic_volume.mouse != 'None' }}"
                            readonly>
+                </div>
+            </div>
+
+            <!-- Reset Device Memory Button -->
+            <div class="reset-memory-container">
+                <button id="resetDeviceMemory" class="reset-memory-btn">
+                    Reset Device Memory
+                </button>
+            </div>
+
+            <!-- Modal for device memory reset -->
+            <div id="resetMemoryModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-warning">
+                        Warning: You are about to wipe disconnected device memory.
+                    </div>
+                    <div class="modal-buttons">
+                        <button id="applyReset" class="modal-btn apply-btn">Apply</button>
+                        <button id="cancelReset" class="modal-btn cancel-btn">Cancel</button>
+                    </div>
                 </div>
             </div>
 
@@ -1871,9 +2046,21 @@
                         </div>
                     </div>
 
-                    <div class="button-group">
-                        <button id="saveProfileBtn" class="btn btn-primary">Save Profile</button>
-                        <button id="cancelProfileBtn" class="btn btn-secondary">Cancel</button>
+                    <div class="form-group">
+                        <div class="force-trigger-container">
+                            <label class="force-trigger-label">
+                                <input type="checkbox" id="activateOnStartupCheckbox" class="force-trigger-checkbox">
+                                Activate on StartUp
+                            </label>
+                            <div class="force-trigger-description">
+                                When enabled, this profile will be automatically activated when the application starts.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="hideProfileEditor()">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="saveProfile()">Save Profile</button>
                     </div>
                 </div>
             </div>
@@ -1951,61 +2138,32 @@
                 const result = await response.json();
                 
                 if (result.status === 'success') {
-                    const devicesList = document.getElementById('outputDevicesList');
+                    const devicesList = document.getElementById('outputDevices');
                     devicesList.innerHTML = '';
                     
                     result.devices.forEach(device => {
-                        const [index, name] = device;
-                        // Просто используем имя как есть
                         const deviceElement = document.createElement('div');
                         deviceElement.className = 'device-item';
                         
-                        deviceElement.innerHTML = `
-                            <input type="checkbox" class="device-checkbox" 
-                                   id="device-${index}"
-                                   data-device-index="${index}"
-                                   data-device-type="output"
-                                   ${enabledDevices.includes(index) ? 'checked' : ''}>
-                            <label class="device-name" for="device-${index}">${name}</label>
-                        `;
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.className = 'device-checkbox';
+                        checkbox.checked = enabledDevices.includes(device.id);
+                        checkbox.addEventListener('change', () => toggleDevice(device.id, checkbox.checked));
                         
+                        const nameSpan = document.createElement('span');
+                        nameSpan.className = 'device-name';
+                        nameSpan.textContent = device.name + (device.connected ? '' : ' (Disconnected)');
+                        nameSpan.addEventListener('click', () => setDefaultDevice(device.id));
+                        
+                        deviceElement.appendChild(checkbox);
+                        deviceElement.appendChild(nameSpan);
                         devicesList.appendChild(deviceElement);
                     });
-                    
-                    // Добавляем обработчики для чекбоксов
-                    document.querySelectorAll('.device-checkbox[data-device-type="output"]').forEach(checkbox => {
-                        checkbox.addEventListener('change', async (e) => {
-                            const deviceIndex = e.target.getAttribute('data-device-index');
-                            const enabled = e.target.checked;
-
-                            try {
-                                const response = await fetch('/set_device_enabled', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json'
-                                    },
-                                    body: JSON.stringify({
-                                        device_index: deviceIndex,
-                                        enabled: enabled
-                                    })
-                                });
-                                
-                                const result = await response.json();
-                                if (result.status !== 'success') {
-                                    showNotification('Error updating device status: ' + result.message, true);
-                                }
-                            } catch (error) {
-                                showNotification('Error updating device status', true);
-                                console.error('Error:', error);
-                            }
-                        });
-                    });
-                } else {
-                    showNotification('Error loading devices: ' + result.message, true);
                 }
             } catch (error) {
-                showNotification('Error loading devices', true);
-                console.error('Error:', error);
+                console.error('Error loading output devices:', error);
+                showNotification('Error loading output devices', true);
             }
         }
 
@@ -2021,60 +2179,32 @@
                 const result = await response.json();
                 
                 if (result.status === 'success') {
-                    const devicesList = document.getElementById('inputDevicesList');
+                    const devicesList = document.getElementById('inputDevices');
                     devicesList.innerHTML = '';
                     
                     result.devices.forEach(device => {
-                        const [index, name] = device;
                         const deviceElement = document.createElement('div');
                         deviceElement.className = 'device-item';
                         
-                        deviceElement.innerHTML = `
-                            <input type="checkbox" class="device-checkbox" 
-                                   id="input-device-${index}"
-                                   data-device-index="${index}"
-                                   data-device-type="input"
-                                   ${enabledDevices.includes(index) ? 'checked' : ''}>
-                            <label class="device-name" for="input-device-${index}">${name}</label>
-                        `;
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.className = 'device-checkbox';
+                        checkbox.checked = enabledDevices.includes(device.id);
+                        checkbox.addEventListener('change', () => toggleInputDevice(device.id, checkbox.checked));
                         
+                        const nameSpan = document.createElement('span');
+                        nameSpan.className = 'device-name';
+                        nameSpan.textContent = device.name + (device.connected ? '' : ' (Disconnected)');
+                        nameSpan.addEventListener('click', () => setDefaultInputDevice(device.id));
+                        
+                        deviceElement.appendChild(checkbox);
+                        deviceElement.appendChild(nameSpan);
                         devicesList.appendChild(deviceElement);
                     });
-                    
-                    // Добавляем обработчики для чекбоксов
-                    document.querySelectorAll('.device-checkbox[data-device-type="input"]').forEach(checkbox => {
-                        checkbox.addEventListener('change', async (e) => {
-                            const deviceIndex = e.target.getAttribute('data-device-index');
-                            const enabled = e.target.checked;
-                            
-                            try {
-                                const response = await fetch('/set_input_device_enabled', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json'
-                                    },
-                                    body: JSON.stringify({
-                                        device_index: deviceIndex,
-                                        enabled: enabled
-                                    })
-                                });
-                                
-                                const result = await response.json();
-                                if (result.status !== 'success') {
-                                    showNotification('Error updating device status: ' + result.message, true);
-                                }
-                            } catch (error) {
-                                showNotification('Error updating device status', true);
-                                console.error('Error:', error);
-                            }
-                        });
-                    });
-                } else {
-                    showNotification('Error loading input devices: ' + result.message, true);
                 }
             } catch (error) {
+                console.error('Error loading input devices:', error);
                 showNotification('Error loading input devices', true);
-                console.error('Error:', error);
             }
         }
 
@@ -2096,7 +2226,7 @@
             });
         });
 
-        // Обработка событий от модального окна клавиатуры
+        // Обработка со��ытий от модального окна клавиатуры
         document.addEventListener('keyboardModalSubmit', function(e) {
             const input = e.detail.input;
             input.dataset.keyboard = e.detail.keyboard;
@@ -2278,31 +2408,32 @@
 
             // Заполняем базовые поля
             document.getElementById('profileName').value = profile ? profile.name : '';
-            const hotkeyInput = document.getElementById('profileHotkey');
-            if (profile && profile.hotkey) {
-                hotkeyInput.dataset.keyboard = profile.hotkey.keyboard;
-                hotkeyInput.dataset.mouse = profile.hotkey.mouse;
-            } else {
-                hotkeyInput.dataset.keyboard = 'None';
-                hotkeyInput.dataset.mouse = 'None';
+            
+            // Устанавливаем сост���яние чекбокса force trigger
+            const forceTriggerCheckbox = document.getElementById('forceTriggerCheckbox');
+            if (forceTriggerCheckbox) {
+                const forceTriggerValue = profile ? profile.force_trigger || false : false;
+                forceTriggerCheckbox.checked = forceTriggerValue;
             }
-            updateHotkeyInputValue(hotkeyInput);
+            
+            const hotkeyInput = document.getElementById('profileHotkey');
+            if (hotkeyInput) {
+                if (profile && profile.hotkey) {
+                    hotkeyInput.dataset.keyboard = profile.hotkey.keyboard;
+                    hotkeyInput.dataset.mouse = profile.hotkey.mouse;
+                } else {
+                    hotkeyInput.dataset.keyboard = 'None';
+                    hotkeyInput.dataset.mouse = 'None';
+                }
+                updateHotkeyInputValue(hotkeyInput);
+            }
 
-            // Обновляем путь к приложению
+            // ����бновляем путь к приложению
             const triggerAppPath = document.getElementById('trigger-app-path');
-            triggerAppPath.textContent = profile && profile.trigger_app ? profile.trigger_app : 'No application selected';
-
-            // Устанавливаем placeholder для селектов устройств
-            const selects = [
-                'outputDefaultDevice',
-                'outputCommDevice',
-                'inputDefaultDevice',
-                'inputCommDevice'
-            ].forEach(id => {
-                const select = document.getElementById(id);
-                select.innerHTML = '<option value="">Not Selected</option>';
-            });
-
+            if (triggerAppPath) {
+                triggerAppPath.textContent = profile && profile.trigger_app ? profile.trigger_app : 'No application selected';
+            }
+            
             // Показываем редактор
             editor.style.display = 'block';
             editor.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -2314,50 +2445,172 @@
                     fetch('/get_input_devices')
                 ]);
 
-                const [outputResult, inputResult] = await Promise.all([
-                    outputResponse.json(),
-                    inputResponse.json()
-                ]);
+                if (outputResponse.ok && inputResponse.ok) {
+                    const outputData = await outputResponse.json();
+                    const inputData = await inputResponse.json();
 
-                if (outputResult.status === 'success') {
-                    const outputDefaultSelect = document.getElementById('outputDefaultDevice');
-                    const outputCommSelect = document.getElementById('outputCommDevice');
-                    
-                    outputDefaultSelect.innerHTML = '<option value="">Not Selected</option>';
-                    outputCommSelect.innerHTML = '<option value="">Not Selected</option>';
-                    
-                    outputResult.devices.forEach(([index, name]) => {
-                        const option = document.createElement('option');
-                        option.value = index;
-                        option.textContent = name;
-                        outputDefaultSelect.appendChild(option.cloneNode(true));
-                        outputCommSelect.appendChild(option);
-                    });
+                    if (outputData.status === 'success' && inputData.status === 'success') {
+                        // Заполняем селекты устройств вывода
+                        const outputDefaultSelect = document.getElementById('outputDefaultDevice');
+                        const outputCommSelect = document.getElementById('outputCommDevice');
+                        
+                        if (outputDefaultSelect && outputCommSelect) {
+                            console.log('Filling output selects. Profile:', profile);
+                            console.log('Available output devices:', outputData.devices);
 
-                    if (profile) {
-                        outputDefaultSelect.value = profile.output_default || '';
-                        outputCommSelect.value = profile.output_communication || '';
-                    }
-                }
+                            outputDefaultSelect.innerHTML = '<option value="">Not Selected</option>';
+                            outputCommSelect.innerHTML = '<option value="">Not Selected</option>';
+                            
+                            // Добавляем все устройства из списка
+                            outputData.devices.forEach(device => {
+                                console.log('Adding output device:', device);
+                                const option = document.createElement('option');
+                                option.value = device.name;
+                                option.textContent = device.name + (device.connected ? '' : ' (Disconnected)');
+                                
+                                const optionComm = option.cloneNode(true);
+                                outputDefaultSelect.appendChild(option);
+                                outputCommSelect.appendChild(optionComm);
+                            });
 
-                if (inputResult.status === 'success') {
-                    const inputDefaultSelect = document.getElementById('inputDefaultDevice');
-                    const inputCommSelect = document.getElementById('inputCommDevice');
-                    
-                    inputDefaultSelect.innerHTML = '<option value="">Not Selected</option>';
-                    inputCommSelect.innerHTML = '<option value="">Not Selected</option>';
-                    
-                    inputResult.devices.forEach(([index, name]) => {
-                        const option = document.createElement('option');
-                        option.value = index;
-                        option.textContent = name;
-                        inputDefaultSelect.appendChild(option.cloneNode(true));
-                        inputCommSelect.appendChild(option);
-                    });
+                            // Если есть профиль и в нем есть сохраненное устройство, которого нет в списке
+                            if (profile) {
+                                console.log('Profile output devices:', {
+                                    default: profile.output_default,
+                                    communication: profile.output_communication
+                                });
 
-                    if (profile) {
-                        inputDefaultSelect.value = profile.input_default || '';
-                        inputCommSelect.value = profile.input_communication || '';
+                                // Для основного устройства
+                                if (profile.output_default) {
+                                    const deviceExists = outputData.devices.some(d => {
+                                        console.log('Comparing:', {
+                                            profile: profile.output_default,
+                                            device: d.name,
+                                            equal: d.name === profile.output_default
+                                        });
+                                        return d.name === profile.output_default;
+                                    });
+
+                                    if (!deviceExists) {
+                                        console.log('Adding disconnected output device:', profile.output_default);
+                                        const option = document.createElement('option');
+                                        option.value = profile.output_default;
+                                        option.textContent = profile.output_default + ' (Disconnected)';
+                                        outputDefaultSelect.appendChild(option);
+                                    }
+                                }
+
+                                // Для коммуникационного уст��ойства
+                                if (profile.output_communication) {
+                                    const deviceExists = outputData.devices.some(d => {
+                                        console.log('Comparing comm:', {
+                                            profile: profile.output_communication,
+                                            device: d.name,
+                                            equal: d.name === profile.output_communication
+                                        });
+                                        return d.name === profile.output_communication;
+                                    });
+
+                                    if (!deviceExists) {
+                                        console.log('Adding disconnected output comm device:', profile.output_communication);
+                                        const option = document.createElement('option');
+                                        option.value = profile.output_communication;
+                                        option.textContent = profile.output_communication + ' (Disconnected)';
+                                        outputCommSelect.appendChild(option);
+                                    }
+                                }
+                            }
+
+                            // Устанавливаем значения из профиля
+                            if (profile) {
+                                if (profile.output_default) {
+                                    console.log('Setting output default:', {
+                                        value: profile.output_default,
+                                        options: Array.from(outputDefaultSelect.options).map(o => ({
+                                            value: o.value,
+                                            text: o.textContent
+                                        }))
+                                    });
+                                    outputDefaultSelect.value = profile.output_default;
+                                    console.log('Selected output default:', outputDefaultSelect.value);
+                                }
+                                if (profile.output_communication) {
+                                    console.log('Setting output comm:', {
+                                        value: profile.output_communication,
+                                        options: Array.from(outputCommSelect.options).map(o => ({
+                                            value: o.value,
+                                            text: o.textContent
+                                        }))
+                                    });
+                                    outputCommSelect.value = profile.output_communication;
+                                    console.log('Selected output comm:', outputCommSelect.value);
+                                }
+                            }
+                        }
+
+                        // Заполняем селекты устройств ввода
+                        const inputDefaultSelect = document.getElementById('inputDefaultDevice');
+                        const inputCommSelect = document.getElementById('inputCommDevice');
+                        
+                        if (inputDefaultSelect && inputCommSelect) {
+                            console.log('Filling input selects. Current profile:', profile);
+                            inputDefaultSelect.innerHTML = '<option value="">Not Selected</option>';
+                            inputCommSelect.innerHTML = '<option value="">Not Selected</option>';
+                            
+                            // Добавляем все устройства из списка
+                            inputData.devices.forEach(device => {
+                                console.log('Processing input device:', device);
+                                const option = document.createElement('option');
+                                option.value = device.name;
+                                option.textContent = device.name + (device.connected ? '' : ' (Disconnected)');
+                                
+                                const optionComm = option.cloneNode(true);
+                                inputDefaultSelect.appendChild(option);
+                                inputCommSelect.appendChild(optionComm);
+                            });
+
+                            // Если есть профиль и в нем есть сохраненное устройство, которого нет в списке
+                            if (profile) {
+                                console.log('Checking for disconnected input devices in profile:', {
+                                    input_default: profile.input_default,
+                                    input_communication: profile.input_communication,
+                                    current_devices: inputData.devices.map(d => d.name)
+                                });
+
+                                // Для основного устройства
+                                if (profile.input_default && !inputData.devices.some(d => d.name === profile.input_default)) {
+                                    console.log('Adding disconnected input device:', profile.input_default);
+                                    const option = document.createElement('option');
+                                    option.value = profile.input_default;
+                                    option.textContent = profile.input_default + ' (Disconnected)';
+                                    inputDefaultSelect.appendChild(option);
+                                }
+                                // Для коммуникационного устройства
+                                if (profile.input_communication && !inputData.devices.some(d => d.name === profile.input_communication)) {
+                                    console.log('Adding disconnected input comm device:', profile.input_communication);
+                                    const option = document.createElement('option');
+                                    option.value = profile.input_communication;
+                                    option.textContent = profile.input_communication + ' (Disconnected)';
+                                    inputCommSelect.appendChild(option);
+                                }
+                            }
+
+                            // Устанавли��аем значения из профиля
+                            if (profile) {
+                                console.log('Setting input select values:', {
+                                    default: profile.input_default,
+                                    comm: profile.input_communication
+                                });
+                                if (profile.input_default) {
+                                    inputDefaultSelect.value = profile.input_default;
+                                    console.log('Set input default value:', inputDefaultSelect.value);
+                                }
+                                if (profile.input_communication) {
+                                    inputCommSelect.value = profile.input_communication;
+                                    console.log('Set input comm value:', inputCommSelect.value);
+                                }
+                            }
+                        }
                     }
                 }
             } catch (error) {
@@ -2393,24 +2646,13 @@
                 console.error('Error loading devices:', error);
             }
 
-            // Функция для получения названия устройства по ID
-            function getDeviceName(deviceId, devices) {
-                const device = devices.find(([id, name]) => id === deviceId);
-                return device ? device[1] : 'Not Selected';
+            // Функция для получения статуса подключения устройства
+            function getDeviceStatus(deviceName, deviceList) {
+                const device = deviceList.find(d => d.name === deviceName);
+                return device ? (device.connected ? '' : ' (Disconnected)') : '';
             }
 
-            // Сохраняем карточку создания нового профиля
-            container.innerHTML = `
-                <div class="profile-card new-profile" id="newProfileCard">
-                    <div class="card-content" onclick="createNewProfile()">
-                        <div class="card-title">Create New Profile</div>
-                        <button class="create-profile-btn">
-                            <span class="plus-icon">+</span>
-                        </button>
-                    </div>
-                </div>
-            `;
-
+            // Рендерим каждый профиль
             profiles.forEach(profile => {
                 const card = document.createElement('div');
                 card.className = 'profile-card existing-profile';
@@ -2421,21 +2663,23 @@
                 const hotkeyText = `${profile.hotkey.keyboard !== 'None' ? profile.hotkey.keyboard : ''}${
                     profile.hotkey.mouse !== 'None' ? ' + ' + profile.hotkey.mouse : ''}`;
 
-                const outputDefaultName = getDeviceName(profile.output_default, outputDevices);
-                const outputCommName = getDeviceName(profile.output_communication, outputDevices);
-                const inputDefaultName = getDeviceName(profile.input_default, inputDevices);
-                const inputCommName = getDeviceName(profile.input_communication, inputDevices);
+                const outputDefaultStatus = getDeviceStatus(profile.output_default, outputDevices);
+                const outputCommStatus = getDeviceStatus(profile.output_communication, outputDevices);
+                const inputDefaultStatus = getDeviceStatus(profile.input_default, inputDevices);
+                const inputCommStatus = getDeviceStatus(profile.input_communication, inputDevices);
 
                 card.innerHTML = `
                     <div class="card-content">
                         <div class="profile-info">
                             <div class="profile-name">${profile.name}</div>
                             <div class="device-info">
-                                <div><span class="device-type">Default Output:</span> ${outputDefaultName}</div>
-                                ${outputCommName !== 'Not Selected' ? `<div><span class="device-type">Communication Output:</span> ${outputCommName}</div>` : ''}
-                                <div><span class="device-type">Default Input:</span> ${inputDefaultName}</div>
-                                ${inputCommName !== 'Not Selected' ? `<div><span class="device-type">Communication Input:</span> ${inputCommName}</div>` : ''}
-                                ${profile.trigger_app ? `<div><span class="device-type">Trigger App:</span> ${profile.trigger_app}</div>` : ''}
+                                <div><span class="device-type">Default Output:</span> ${profile.output_default || 'Not Selected'}${profile.output_default ? outputDefaultStatus : ''}</div>
+                                ${profile.output_communication ? `<div><span class="device-type">Communication Output:</span> ${profile.output_communication}${outputCommStatus}</div>` : ''}
+                                <div><span class="device-type">Default Input:</span> ${profile.input_default || 'Not Selected'}${profile.input_default ? inputDefaultStatus : ''}</div>
+                                ${profile.input_communication ? `<div><span class="device-type">Communication Input:</span> ${profile.input_communication}${inputCommStatus}</div>` : ''}
+                                ${profile.trigger_app ? `<div><span class="device-type">Trigger App:</span> ${getFileName(profile.trigger_app)}</div>` : ''}
+                                ${profile.force_trigger ? `<div><span class="device-type">Force Mode:</span> Enabled</div>` : ''}
+                                ${profile.activate_on_startup ? `<div><span class="device-type">Startup:</span> Enabled</div>` : ''}
                             </div>
                             ${hotkeyText ? `<div class="hotkey-badge">${hotkeyText}</div>` : ''}
                         </div>
@@ -2447,7 +2691,6 @@
                     </div>
                 `;
 
-                // Добавляем обработчик клика для редактирования
                 card.addEventListener('click', () => {
                     showProfileEditor(profile);
                 });
@@ -2468,27 +2711,29 @@
         async function saveProfile() {
             const profileName = document.getElementById('profileName').value.trim();
             if (!profileName) {
-                showNotification('Please enter profile name', true);
+                showNotification('Пожалуйста, введите имя профиля', true);
                 return;
             }
 
-            const profile = {
-                name: profileName,
-                output_default: document.getElementById('outputDefaultDevice').value,
-                output_communication: document.getElementById('outputCommDevice').value,
-                input_default: document.getElementById('inputDefaultDevice').value,
-                input_communication: document.getElementById('inputCommDevice').value,
-                hotkey: {
-                    keyboard: document.getElementById('profileHotkey').dataset.keyboard || "None",
-                    mouse: document.getElementById('profileHotkey').dataset.mouse || "None"
-                },
-                trigger_app: document.getElementById('trigger-app-path').textContent !== 'No application selected' 
-                    ? document.getElementById('trigger-app-path').textContent 
-                    : null
-            };
-
             try {
-                const response = await fetch('/profiles', {
+                const profile = {
+                    name: profileName,
+                    output_default: document.getElementById('outputDefaultDevice')?.value || '',
+                    output_communication: document.getElementById('outputCommDevice')?.value || '',
+                    input_default: document.getElementById('inputDefaultDevice')?.value || '',
+                    input_communication: document.getElementById('inputCommDevice')?.value || '',
+                    hotkey: {
+                        keyboard: document.getElementById('profileHotkey')?.dataset?.keyboard || "None",
+                        mouse: document.getElementById('profileHotkey')?.dataset?.mouse || "None"
+                    },
+                    trigger_app: document.getElementById('trigger-app-path')?.textContent === 'No application selected' ? '' : document.getElementById('trigger-app-path')?.textContent || '',
+                    force_trigger: document.getElementById('forceTriggerCheckbox')?.checked || false,
+                    activate_on_startup: document.getElementById('activateOnStartupCheckbox')?.checked || false
+                };
+
+                console.log('Saving profile:', profile);
+
+                const response = await fetch('/save_profile', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -2497,25 +2742,29 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('Failed to save profile');
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
                 const result = await response.json();
+                if (!result) {
+                    throw new Error('Получен пустой ответ от сервера');
+                }
+                
                 if (result.status === 'success') {
-                    const profilesResponse = await fetch('/profiles');
-                    const profilesData = await profilesResponse.json();
-                    if (profilesData.status === 'success') {
-                        profiles = profilesData.profiles;
-                        await renderProfiles();
-                        hideProfileEditor();
-                        showNotification('Profile saved successfully');
+                    showNotification('Профиль успешно сохранен');
+                    hideProfileEditor();
+                    if (typeof loadProfiles === 'function') {
+                        await loadProfiles();
+                    } else {
+                        console.warn('Function loadProfiles is not defined');
+                        location.reload();
                     }
                 } else {
-                    throw new Error(result.message || 'Failed to save profile');
+                    showNotification('Ошибка при сохранении профиля: ' + (result.message || 'Неизвестная ошибка'), true);
                 }
             } catch (error) {
                 console.error('Error saving profile:', error);
-                showNotification('Error saving profile: ' + error.message, true);
+                showNotification('Ошибка при сохранении профиля: ' + error.message, true);
             }
         }
 
@@ -2715,6 +2964,120 @@
                 showNotification('Error clearing application', true);
                 console.error('Error:', error);
             });
+        }
+
+        async function toggleDevice(deviceId, enabled) {
+            try {
+                const response = await fetch('/set_device_enabled', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        device_index: deviceId,
+                        enabled: enabled
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.status !== 'success') {
+                    showNotification('Error updating device status: ' + result.message, true);
+                }
+            } catch (error) {
+                console.error('Error updating device status:', error);
+                showNotification('Error updating device status', true);
+            }
+        }
+
+        async function toggleInputDevice(deviceId, enabled) {
+            try {
+                const response = await fetch('/set_input_device_enabled', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        device_index: deviceId,
+                        enabled: enabled
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.status !== 'success') {
+                    showNotification('Error updating device status: ' + result.message, true);
+                }
+            } catch (error) {
+                console.error('Error updating device status:', error);
+                showNotification('Error updating device status', true);
+            }
+        }
+
+        async function setDefaultDevice(deviceId) {
+            try {
+                const response = await fetch('/set_default_device', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        device_index: deviceId
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showNotification('Default output device updated');
+                    await loadOutputDevices();
+                } else {
+                    showNotification('Error updating default device: ' + result.message, true);
+                }
+            } catch (error) {
+                console.error('Error setting default device:', error);
+                showNotification('Error setting default device', true);
+            }
+        }
+
+        async function setDefaultInputDevice(deviceId) {
+            try {
+                const response = await fetch('/set_default_input_device', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        device_index: deviceId
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showNotification('Default input device updated');
+                    await loadInputDevices();
+                } else {
+                    showNotification('Error updating default device: ' + result.message, true);
+                }
+            } catch (error) {
+                console.error('Error setting default device:', error);
+                showNotification('Error setting default device', true);
+            }
+        }
+
+        // Функция для декодирования Unicode escape-последовательностей
+        function decodeUnicode(str) {
+            if (!str) return '';
+            try {
+                // Используем встроенный декодер JSON для корректной обработки Unicode
+                return JSON.parse(`"${str}"`);
+            } catch (e) {
+                console.error('Error decoding Unicode:', e);
+                return str;
+            }
+        }
+
+        // Функция для безопасного декодирования текста устройства
+        function safeDecodeDevice(device, status = '') {
+            if (!device) return 'Not Selected';
+            return device + status;  // Убираем декодирование, так как оно больше не нужно
         }
     </script>
 </body>

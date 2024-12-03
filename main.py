@@ -30,6 +30,84 @@ import threading
 import psutil
 import tkinter as tk
 from tkinter import filedialog
+from urllib.parse import unquote
+
+def check_powershell_module():
+    """Проверяет наличие модуля AudioDeviceCmdlets"""
+    try:
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        
+        ps_script = """
+        if (Get-Module -ListAvailable -Name AudioDeviceCmdlets) {
+            Write-Output "MODULE_INSTALLED"
+        } else {
+            Write-Output "MODULE_NOT_INSTALLED"
+        }
+        """
+        
+        result = subprocess.run(
+            [r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", "-Command", ps_script],
+            capture_output=True,
+            text=True,
+            encoding='utf-8',
+            creationflags=subprocess.CREATE_NO_WINDOW,
+            startupinfo=startupinfo
+        )
+        
+        return "MODULE_INSTALLED" in result.stdout
+    except Exception as e:
+        print(f"Error checking PowerShell module: {e}")
+        return False
+
+def install_powershell_module():
+    """Устанавливает модуль AudioDeviceCmdlets"""
+    try:
+        show_notification("Initializing AudioDeviceCmdlets module installation...", "speaker")
+        
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        
+        ps_script = """
+        try {
+            Install-Module -Name AudioDeviceCmdlets -Force -Scope CurrentUser
+            if (Get-Module -ListAvailable -Name AudioDeviceCmdlets) {
+                Write-Output "INSTALLATION_SUCCESS"
+            } else {
+                Write-Output "INSTALLATION_FAILED"
+            }
+        } catch {
+            Write-Output "INSTALLATION_FAILED"
+            Write-Output $_.Exception.Message
+        }
+        """
+        
+        result = subprocess.run(
+            [r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe", "-Command", ps_script],
+            capture_output=True,
+            text=True,
+            encoding='utf-8',
+            creationflags=subprocess.CREATE_NO_WINDOW,
+            startupinfo=startupinfo
+        )
+        
+        if "INSTALLATION_SUCCESS" in result.stdout:
+            show_notification("AudioDeviceCmdlets module installed successfully!", "speaker")
+            return True
+        else:
+            show_notification("Failed to install AudioDeviceCmdlets module", "speaker")
+            return False
+    except Exception as e:
+        print(f"Error installing PowerShell module: {e}")
+        show_notification("Error installing AudioDeviceCmdlets module", "speaker")
+        return False
+
+# Проверяем и устанавливаем модуль при запуске
+if not check_powershell_module():
+    install_powershell_module()
+
+app = Flask(__name__)
+app.json.ensure_ascii = False  # Добавляем эту строку для правильной работы с Unicode
 
 # Windows constants
 WM_APPCOMMAND = 0x319
@@ -38,8 +116,6 @@ APPCOMMAND_VOLUME_DOWN = 0x09
 APPCOMMAND_MEDIA_PLAY_PAUSE = 0x0E
 APPCOMMAND_MEDIA_NEXTTRACK = 0x0B
 APPCOMMAND_MEDIA_PREVIOUSTRACK = 0x0C
-
-app = Flask(__name__)
 
 # Default hotkeys
 default_hotkeys = {
@@ -89,7 +165,7 @@ default_hotkeys = {
     }
 }
 
-# Добавляем константы для позиций уведомлений
+# Добавляем константы для позиций уведомленй
 NOTIFICATION_POSITIONS = {
     "top_right": "Top Right",
     "top_left": "Top Left", 
@@ -112,14 +188,15 @@ class KeyboardMouseTracker:
         
         self.keyboard_listener = keyboard.Listener(
             on_press=self._on_key_press,
-            on_release=self._on_key_release
+            on_release=self._on_key_release,
+            suppress=False  # Не блокируем клавиши
         )
         
         mouse.hook(self._on_mouse_event)
         
         self.state_cache = None
         self.last_state_update = 0
-        self.state_cache_lifetime = 0.008
+        self.state_cache_lifetime = 0.032  # Снижаем до ~30Hz для экономии CPU
     
     def _on_mouse_event(self, event):
         try:
@@ -143,7 +220,7 @@ class KeyboardMouseTracker:
         try:
             key_str = None
             
-            # Обработка об��чных клавиш
+            # Обработка обчных клавиш
             if isinstance(key, keyboard.KeyCode):
                 # Маппинг виртуальных кодов на английские буквы
                 vk_to_eng = {
@@ -195,7 +272,7 @@ class KeyboardMouseTracker:
         try:
             key_str = None
             
-            # Обработк�������� обычных клавиш
+            # Обработк обычных клавиш
             if isinstance(key, keyboard.KeyCode):
                 # Маппинг виртуальных кодов на английские буквы
                 vk_to_eng = {
@@ -244,9 +321,17 @@ class KeyboardMouseTracker:
             print(f"Error in key release handler: {e}")
 
     def _track_mouse_buttons(self):
+        last_check_time = 0
+        check_interval = 0.032  # Снижаем до ~30Hz
+        
         while not self.stop_event.is_set():
             try:
-                time.sleep(0.008)
+                current_time = time.time()
+                if current_time - last_check_time < check_interval:
+                    time.sleep(0.001)  # Короткая пауза
+                    continue
+                    
+                last_check_time = current_time
                 
                 left = win32api.GetKeyState(win32con.VK_LBUTTON) < 0
                 right = win32api.GetKeyState(win32con.VK_RBUTTON) < 0
@@ -422,12 +507,20 @@ def handle_hotkeys(tracker):
     """Обработчик горячих клавиш"""
     global profile_manager
     last_action_time = {}
+    last_check_time = 0
+    check_interval = 0.032  # Снижаем до ~30Hz
     
     while True:
         try:
-            time.sleep(0.008)
-            state = tracker.get_state()
             current_time = time.time()
+            
+            # Проверяем, прошло ли достаточно времени с последней проверки
+            if current_time - last_check_time < check_interval:
+                time.sleep(0.002)  # Увеличиваем паузу
+                continue
+                
+            last_check_time = current_time
+            state = tracker.get_state()
             
             # Проверяем горячие клавиши профилей
             for profile in profile_manager.profiles:
@@ -439,18 +532,17 @@ def handle_hotkeys(tracker):
                     'mouse': profile['hotkey'].get('mouse', 'None')
                 }
                 
-                if current_time - last_action_time.get(f'profile_{profile["name"]}', 0) < 0.1:
+                if current_time - last_action_time.get(f'profile_{profile["name"]}', 0) < 0.2:  # Увеличиваем задержку
                     continue
                     
                 if check_hotkey_combination(profile_combo, state):
-                    print(f"Activating profile {profile['name']} by hotkey")
                     activate_profile(profile['name'])
                     last_action_time[f'profile_{profile["name"]}'] = current_time
                     continue
             
             # Проверяем остальные горячие клавиши
             for action, combo in hotkeys.items():
-                if current_time - last_action_time.get(action, 0) < 0.1:
+                if current_time - last_action_time.get(action, 0) < 0.2:  # Увеличиваем задержку
                     continue
                 
                 if combo['keyboard'].lower() == 'none' and combo['mouse'].lower() == 'none':
@@ -793,7 +885,7 @@ def set_default_input_device(device_index):
         print(f"Error executing PowerShell: {e}")
 
 def set_default_input_communication_device(device_index):
-    """Утанавливает устройство ввода для связи по умолчанию"""
+    """Утнавливает устройство ввода для связи по умолчанию"""
     try:
         pythoncom.CoInitialize()
         try:
@@ -832,13 +924,13 @@ def set_default_input_communication_device(device_index):
 
 def create_notification_icon(icon_type='speaker', size=64):
     """Создает красивую иконку для уведомлений"""
-    # Создаем изображение большего размера для лучшего сглаживания
+    # Создаем изображение болшего размера для лучшего сглаживания
     large_size = size * 4
     image = Image.new('RGBA', (large_size, large_size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
     scale = large_size / 128
 
-    # Рисуем градиентный круг с правильным расчетом координат
+    # Рисуем градиентный круг с правильным расчетом координа
     gradient_steps = 20
     step_size = large_size / (2 * gradient_steps)
     for i in range(gradient_steps):
@@ -851,7 +943,7 @@ def create_notification_icon(icon_type='speaker', size=64):
         draw.ellipse([x0, y0, x1, y1], fill=color)
 
     if icon_type == 'speaker':
-        # Рисуем динамик (бе��ый)
+        # Рисуем динамик (беый)
         speaker_color = (255, 255, 255, 255)
         
         # Прямоугольник динамика
@@ -863,22 +955,21 @@ def create_notification_icon(icon_type='speaker', size=64):
         # Треугольник динамика
         points = [
             (int(55 * scale), int(44 * scale)),
-            (int(85 * scale), int(24 * scale)),
+            (int(85 * scale), int(24 * scale)), 
             (int(85 * scale), int(104 * scale)),
             (int(55 * scale), int(84 * scale))
         ]
         draw.polygon(points, fill=speaker_color)
         
-        # Звуковые волны с улучшенным сглаживанием
+        # Звуковые волн с улучшенным сглаживанием
         wave_color = (255, 255, 255, 200)
         for i in range(3):
             offset = i * 15
-            # Увеличиваем толщину линии для лучшего сглаживания
+            # Увеличиваем толщину линии для учшего сглживания
             draw.arc(
                 [int((70 + offset) * scale), int((34 + offset) * scale),
                 int((100 + offset) * scale), int((94 + offset) * scale)],
-                300, 60, fill=wave_color, width=int(6 * scale)
-            )
+                300, 60, fill=wave_color, width=int(6 * scale))
 
     elif icon_type == 'microphone':
         mic_color = (255, 255, 255, 255)
@@ -901,7 +992,7 @@ def create_notification_icon(icon_type='speaker', size=64):
         stand_y1 = int(64 * scale)
         stand_y2 = base_y
         
-        # Рисуем ножку с градиентом
+        # Рисуем ножку с грдиентом
         steps = 20  # Увеличиваем количество шагов для плавности
         for i in range(steps):
             alpha = int(255 * (1 - i/steps * 0.3))
@@ -930,18 +1021,8 @@ def create_notification_icon(icon_type='speaker', size=64):
             int(54 * scale), int(26 * scale),
             int(62 * scale), int(34 * scale)
         ], fill=highlight_color)
-        
-        # Добавляем звуковые волны с улучшенным сглаживание
-        wave_color = (255, 255, 255, 100)
-        for i in range(3):
-            offset = i * 8
-            # Увелчиваем толщин линии для лучшего сглаживания
-            draw.arc([
-                int((44 - offset) * scale), int((34 - offset) * scale),
-                int((84 + offset) * scale), int((54 + offset) * scale)
-            ], 220, 320, fill=wave_color, width=int(4 * scale))
 
-    # Уменьшаем изображение до нужного азеа с использованием всококачественного ресемплинга
+    # Уменьшаем изображение до нужного размера с использованием высококачественного ресемплинга
     image = image.resize((size, size), Image.Resampling.LANCZOS)
     return image
 
@@ -954,17 +1035,17 @@ class NotificationWindow:
         self.DARK_THEME = {
             'bg': win32api.RGB(44, 44, 44),      # Темно-серый фон
             'text': win32api.RGB(255, 255, 255),  # Белый текст
-            'accent': win32api.RGB(74, 158, 255)  # Голубой акцент
+            'accent': win32api.RGB(74, 158, 255)  # Голубй акцен
         }
         
         # Цвета для светлой темы
         self.LIGHT_THEME = {
             'bg': win32api.RGB(240, 240, 240),    # Светло-серый фон
-            'text': win32api.RGB(0, 0, 0),        # Черный текст
+            'text': win32api.RGB(0, 0, 0),        # Черный ткст
             'accent': win32api.RGB(0, 120, 215)   # Синий кцент
         }
         
-        # По умолчанию темная тема
+        # По уолчанию темная тема
         self.current_theme = self.DARK_THEME
 
         # Регистрируем класс окна
@@ -988,7 +1069,7 @@ class NotificationWindow:
         return win32gui.DefWindowProc(hwnd, msg, wparam, lparam)
 
     def _create_rounded_region(self, hwnd, width, height, radius):
-        """Сздает регио окна со скругленными углами"""
+        """Сздает регио окна с скругленными углами"""
         try:
             region = win32gui.CreateRoundRectRgn(0, 0, width, height, radius, radius)
             win32gui.SetWindowRgn(hwnd, region, True)
@@ -996,7 +1077,7 @@ class NotificationWindow:
             print(f"Error creating rounded region: {e}")
 
     def set_theme(self, is_light):
-        """Устанавливает тему уведомлений"""
+        """У��танавливает тему уведомлений"""
         print(f"Setting theme to {'light' if is_light else 'dark'}")  # Отладочный вывод
         self.current_theme = self.LIGHT_THEME if is_light else self.DARK_THEME
 
@@ -1048,7 +1129,7 @@ class NotificationWindow:
                 # Создаем иконку
                 icon_image = create_notification_icon(icon_type, size=32)
                 
-                # Сохраняем как ICO
+                # Сохраняе как ICO
                 icon_path = os.path.join(tempfile.gettempdir(), f'notification_icon_{icon_type}.ico')
                 # Конвертируем в ICO формат
                 icon_image.save(icon_path, format='ICO', sizes=[(32, 32)])
@@ -1059,7 +1140,7 @@ class NotificationWindow:
                     32, 32, win32con.LR_LOADFROMFILE
                 )
                 
-                # Рисуем иконку
+                # Рисуем иконк
                 win32gui.DrawIconEx(
                     memdc, 15, 24,
                     icon, 32, 32,
@@ -1126,7 +1207,7 @@ class NotificationWindow:
 
     def get_notification_position(self, width, height, screen_width, screen_height):
         padding = 20
-        bottom_padding = 70  # Увеличенный отступ снизу для нижних позиций (было 50, стало 70)
+        bottom_padding = 70  # Увеличенный отступ снзу для нижних позиций (было 50, стало 70)
         
         positions = {
             'top_right': (screen_width - width - padding, padding),
@@ -1163,12 +1244,12 @@ def load_enabled_devices():
         with open('enabled_devices.json', 'r') as f:
             enabled_devices = set(json.load(f))
     except FileNotFoundError:
-        # Если файл не существует, все устройства активны по умолчанию
+        # Если файл не существт, все устройства активны по умолчанию
         enabled_devices = set(device[0] for device in devices)
         save_enabled_devices()
 
 def save_enabled_devices():
-    """Сохраняет список актвы�� устройств в файл"""
+    """Сохраняет список актвых устройств в фал"""
     try:
         with open('enabled_devices.json', 'w') as f:
             json.dump(list(enabled_devices), f)
@@ -1201,7 +1282,7 @@ def set_device_enabled():
 
 def switch_audio_device(direction):
     """Переключает устройство вывода звука"""
-    global current_device_index, devices, enabled_devices
+    global current_device_index, devices
     try:
         pythoncom.CoInitialize()
         try:
@@ -1210,44 +1291,61 @@ def switch_audio_device(direction):
                 if not devices:
                     return
             
-            if not enabled_devices:
-                enabled_devices.update(device[0] for device in devices)
-                save_enabled_devices()
-                
-            active_devices = [device for device in devices if device[0] in enabled_devices]
+            # Получаем текущее устройство
+            current_device = None
+            if current_device_index < len(devices):
+                current_device = devices[current_device_index]
             
-            if not active_devices:
+            # Если текущее устройство отключено, добавляем его в список отключенных
+            if current_device:
+                device_name = current_device[1]
+                if not is_device_connected(device_name, devices):
+                    profile_manager.add_disconnected_device(device_name, current_device[0])
+                
+            # Получаем список всех устройств, включая отключенные
+            all_device_names = []
+            for device in devices:
+                device_name = device[1]
+                all_device_names.append(device_name)
+                if profile_manager.is_device_disconnected(device_name):
+                    all_device_names.append(device_name)
+            
+            if not all_device_names:
                 return
                 
-            if current_device_index >= len(devices) or current_device_index < 0:
-                current_device_index = 0
-                
+            # Находим текущее устрйство в списке
+            current_name = ""
+            if current_device:
+                current_name = current_device[1]
+            
             try:
-                current_device = next((device for device in active_devices 
-                                    if device[0] == devices[current_device_index][0]), 
-                                    active_devices[0])
+                current_index = all_device_names.index(current_name)
+            except ValueError:
+                current_index = 0
+            
+            # Опрееляем следующее устройство
+            if direction == 'prev':
+                next_index = (current_index - 1) % len(all_device_names)
+            else:
+                next_index = (current_index + 1) % len(all_device_names)
+            
+            next_device_name = all_device_names[next_index]
+            
+            # Проверяем, подключен ли устройство
+            is_disconnected = profile_manager.is_device_disconnected(next_device_name)
+            
+            # Если устройство подключено, переключаемся на него
+            if not is_disconnected:
+                for i, device in enumerate(devices):
+                    if device[1] == next_device_name:
+                        current_device_index = i
+                        set_default_audio_device(device[0])
+                        break
+            
+            # оказывае уведомление
+            status = " (Disconnected)" if is_disconnected else ""
+            show_notification(f"Switched to: {next_device_name}{status}")
                 
-                current_active_index = active_devices.index(current_device)
-                
-                if direction == 'prev':
-                    next_active_index = (current_active_index - 1) % len(active_devices)
-                else:
-                    next_active_index = (current_active_index + 1) % len(active_devices)
-                
-                next_device = active_devices[next_active_index]
-                
-                current_device_index = next(i for i, device in enumerate(devices) 
-                                        if device[0] == next_device[0])
-                
-                set_default_audio_device(next_device[0])
-                
-                Thread(target=show_notification, args=(f"Switched to: {next_device[1]}",)).start()
-                
-            except Exception as e:
-                if active_devices:
-                    current_device_index = next(i for i, device in enumerate(devices) 
-                                            if device[0] == active_devices[0][0])
-                    set_default_audio_device(active_devices[0][0])
         finally:
             pythoncom.CoUninitialize()
             
@@ -1275,14 +1373,6 @@ def create_icon():
     draw.arc([70, 34, 100, 94], 300, 60, fill=wave_color, width=4)
     draw.arc([85, 24, 115, 104], 300, 60, fill=wave_color, width=4)
 
-    bar_colors = [(0, 255, 255, 200), (0, 255, 200, 200), (0, 200, 255, 200)]
-    bar_width = 4
-    for i, color in enumerate(bar_colors):
-        height = 20 + i * 10
-        x = 95 + i * 8
-        y = 64 - height//2
-        draw.rectangle([x, y, x+bar_width, y+height], fill=color)
-
     return image
 
 def open_settings(icon, item):
@@ -1299,20 +1389,21 @@ WM_DEVICECHANGE = 0x0219
 class SystemTray:
     def __init__(self):
         self.log("Initializing SystemTray...")
+        self.flask_server = None  # Добавляем ссылку на сервер
+        self.server_thread = None  # Добавляем ссылку на поток сервера
         
-        # Создаем ико��ку
         try:
             icon_size = 64
             image = Image.new('RGBA', (icon_size, icon_size), (0, 0, 0, 0))
             draw = ImageDraw.Draw(image)
 
-            # Рисуем граиентный круг
+            # Рисуем градиентный круг
             for i in range(20):
                 alpha = int(255 * (1 - i/20))
                 color = (0, 123, 255, alpha)
                 draw.ellipse([i, i, icon_size-i, icon_size-i], fill=color)
 
-            # Рисем динамик (елый)
+            # Рисуем динамик (белый)
             speaker_color = (255, 255, 255, 255)
             scale = icon_size / 128  # Масштабируем координаты
             
@@ -1321,43 +1412,21 @@ class SystemTray:
                 int(35 * scale), int(44 * scale), 
                 int(55 * scale), int(84 * scale)
             ], fill=speaker_color)
-            
-            # Треугльник динамика
+            # Треугольник динамика
             points = [
                 (int(55 * scale), int(44 * scale)),
-                (int(85 * scale), int(24 * scale)),
+                (int(85 * scale), int(24 * scale)), 
                 (int(85 * scale), int(104 * scale)),
                 (int(55 * scale), int(84 * scale))
             ]
             draw.polygon(points, fill=speaker_color)
 
-            # Звуковые волны
-            wave_color = (255, 255, 255, 200)
-            draw.arc([
-                int(70 * scale), int(34 * scale),
-                int(100 * scale), int(94 * scale)
-            ], 300, 60, fill=wave_color, width=int(4 * scale))
-            draw.arc([
-                int(85 * scale), int(24 * scale),
-                int(115 * scale), int(104 * scale)
-            ], 300, 60, fill=wave_color, width=int(4 * scale))
-
-            # Цветные полоски
-            bar_colors = [(0, 255, 255, 200), (0, 255, 200, 200), (0, 200, 255, 200)]
-            bar_width = int(4 * scale)
-            for i, color in enumerate(bar_colors):
-                height = int((20 + i * 10) * scale)
-                x = int((95 + i * 8) * scale)
-                y = int(64 * scale - height//2)
-                draw.rectangle([x, y, x+bar_width, y+height], fill=color)
-
-            # Создаем меню
+            # Создаем меню с Settings как действием по умолчанию
             menu = (
-                pystray.MenuItem("Settings", self._open_settings),
+                pystray.MenuItem("Settings", self._open_settings, default=True),  # default=True делает этот пункт действием по умолчанию
                 pystray.MenuItem("Exit", self._exit_app)
             )
 
-            # Создаем иконку в трее
             self.icon = pystray.Icon(
                 "Sound Device Control App",
                 image,
@@ -1377,9 +1446,32 @@ class SystemTray:
     def _open_settings(self, icon, item):
         try:
             self.log("Opening settings")
+            # Запускаем сервер если он не запущен
+            if not self.server_thread or not self.server_thread.is_alive():
+                self.server_thread = Thread(target=self._run_flask_server, daemon=True)
+                self.server_thread.start()
+                time.sleep(0.5)  # Даем серверу время на запуск
             webbrowser.open('http://127.0.0.1:5000')
         except Exception as e:
             self.log(f"Error opening settings: {e}")
+
+    def _run_flask_server(self):
+        """Запускает Flask сервер"""
+        try:
+            self.flask_server = app.run(host='127.0.0.1', port=5000, debug=False)
+        except Exception as e:
+            self.log(f"Error running Flask server: {e}")
+
+    def stop_server(self):
+        """Останавливает Flask сервер"""
+        if self.flask_server:
+            try:
+                func = request.environ.get('werkzeug.server.shutdown')
+                if func is None:
+                    raise RuntimeError('Not running with the Werkzeug Server')
+                func()
+            except Exception as e:
+                self.log(f"Error stopping server: {e}")
 
     def _exit_app(self, icon, item):
         try:
@@ -1420,7 +1512,7 @@ def index():
     return render_template("index.html", hotkeys=hotkeys)
 
 def save_settings(settings):
-    """Сохраяет настройки в файл"""
+    """Сохраняет настройки в файл"""
     try:
         # Проверяем валидность JSON перед сохранением
         json.dumps(settings)
@@ -1441,7 +1533,7 @@ def update_settings_structure(settings):
             updated = True
     return settings, updated
 
-# Загрузк настроек при запуске
+# Загрузка настроек при запуске
 try:
     with open('settings.json', 'r', encoding='utf-8') as f:
         hotkeys = json.load(f)
@@ -1507,7 +1599,7 @@ def update_hotkey():
 def run_flask():
     app.run(host='127.0.0.1', port=5000, debug=False)
 
-# Добавлем глобальные переменные для устройств ввода
+# Добавлем глбальные переменные для устройств ввода
 enabled_input_devices = set()
 
 def load_enabled_input_devices():
@@ -1517,7 +1609,7 @@ def load_enabled_input_devices():
         with open('enabled_input_devices.json', 'r') as f:
             enabled_input_devices = set(json.load(f))
     except FileNotFoundError:
-        # Еси файл не существует, все усройства активны по умолчанию
+        # Если файл не существует, все устройства активны по умолчанию
         enabled_input_devices = set(device[0] for device in input_devices)
         save_enabled_input_devices()
 
@@ -1531,12 +1623,32 @@ def save_enabled_input_devices():
 
 @app.route("/get_input_devices")
 def get_input_devices_route():
-    """Вовращает спиок устройств ввода"""
+    """Возвращает список устройств ввода"""
     try:
         devices = get_input_devices()
+        device_list = []
+        
+        # Добавляем подключенные устройства
+        for device in devices:
+            device_list.append({
+                'id': device[0],
+                'name': device[1],
+                'connected': True
+            })
+            
+        # Добавляем отключенные устройства
+        for device_name, device_info in profile_manager.disconnected_devices['input'].items():
+            # Проверяем, нет ли уже такого устройства в списке
+            if not any(d['name'] == device_name for d in device_list):
+                device_list.append({
+                    'id': device_info['id'],
+                    'name': f"{device_name} (Disconnected)",
+                    'connected': False
+                })
+        
         return jsonify({
             "status": "success",
-            "devices": devices
+            "devices": device_list
         })
     except Exception as e:
         return jsonify({
@@ -1569,7 +1681,7 @@ def set_input_device_enabled():
         })
 
 def get_input_devices():
-    """Получает список устройств ввода звука"""
+    """Получаем список устройств ввода звука"""
     devices = []
     
     try:
@@ -1704,7 +1816,7 @@ def get_input_devices():
 
 def switch_input_device(direction):
     """Переключает устройство ввода звука"""
-    global current_input_device_index, input_devices, enabled_input_devices
+    global current_input_device_index, input_devices
     try:
         pythoncom.CoInitialize()
         try:
@@ -1712,35 +1824,62 @@ def switch_input_device(direction):
                 input_devices = get_input_devices()
                 if not input_devices:
                     return
-                
-            active_devices = [device for device in input_devices if device[0] in enabled_input_devices]
             
-            if not active_devices:
+            # Получаем текщее устройство
+            current_device = None
+            if current_input_device_index < len(input_devices):
+                current_device = input_devices[current_input_device_index]
+            
+            # Если текущее устройство отключено, добавляем его в список отключенных
+            if current_device:
+                device_name = current_device[1]
+                if not is_device_connected(device_name, input_devices):
+                    profile_manager.add_disconnected_device(device_name, current_device[0], is_input=True)
+                
+            # Получаем список всех устройств, включая отключенные
+            all_device_names = []
+            for device in input_devices:
+                device_name = device[1]
+                all_device_names.append(device_name)
+                if profile_manager.is_device_disconnected(device_name, is_input=True):
+                    all_device_names.append(device_name)
+            
+            if not all_device_names:
                 return
                 
+            # Находим текущее устройство в списке
+            current_name = ""
+            if current_device:
+                current_name = current_device[1]
+            
             try:
-                current_device = next((device for device in active_devices 
-                                    if device[0] == input_devices[current_input_device_index][0]), 
-                                    active_devices[0])
+                current_index = all_device_names.index(current_name)
+            except ValueError:
+                current_index = 0
+            
+            # Определяем следующее устройство
+            if direction == 'prev':
+                next_index = (current_index - 1) % len(all_device_names)
+            else:
+                next_index = (current_index + 1) % len(all_device_names)
+            
+            next_device_name = all_device_names[next_index]
+            
+            # Проверяем, подключено ли устройство
+            is_disconnected = profile_manager.is_device_disconnected(next_device_name, is_input=True)
+            
+            # Если устройство подключено, переключаемся на него
+            if not is_disconnected:
+                for i, device in enumerate(input_devices):
+                    if device[1] == next_device_name:
+                        current_input_device_index = i
+                        set_default_input_device(device[0])
+                        break
+            
+            # Показываем уведомление
+            status = " (Disconnected)" if is_disconnected else ""
+            show_notification(f"Input switched to: {next_device_name}{status}", 'microphone')
                 
-                current_active_index = active_devices.index(current_device)
-                
-                if direction == 'prev':
-                    next_active_index = (current_active_index - 1) % len(active_devices)
-                else:
-                    next_active_index = (current_active_index + 1) % len(active_devices)
-                
-                next_device = active_devices[next_active_index]
-                
-                current_input_device_index = next(i for i, device in enumerate(input_devices) 
-                                              if device[0] == next_device[0])
-                
-                set_default_input_device(next_device[0])
-                
-                show_notification(f"Input switched to: {next_device[1]}", 'microphone')
-                
-            except Exception as e:
-                print(f"Error during input device switching: {e}")
         finally:
             pythoncom.CoUninitialize()
             
@@ -1775,19 +1914,38 @@ def toggle_microphone_volume():
 
 @app.route("/get_output_devices")
 def get_output_devices():
-    """Возвращает список устройсв вывоа звука"""
+    """Возвращает список устройств вывода звука"""
     try:
         devices = get_audio_devices()
+        device_list = []
+        
+        # Добавляем подключенные устройства
+        for device in devices:
+            device_list.append({
+                'id': device[0],
+                'name': device[1],
+                'connected': True
+            })
+            
+        # Добавляем отключенные устройства
+        for device_name, device_info in profile_manager.disconnected_devices['output'].items():
+            # Проверяем, нет ли уже такого устройства в списке
+            if not any(d['name'] == device_name for d in device_list):
+                device_list.append({
+                    'id': device_info['id'],
+                    'name': f"{device_name} (Disconnected)",
+                    'connected': False
+                })
+        
         return jsonify({
             "status": "success",
-            "devices": devices
+            "devices": device_list
         })
     except Exception as e:
         return jsonify({
             "status": "error",
             "message": str(e)
         })
-
 @app.route("/save_settings", methods=["POST"])
 def save_settings_endpoint():
     try:
@@ -1806,7 +1964,7 @@ def save_settings_endpoint():
         # Обновляем структуру если нужно
         data, _ = update_settings_structure(data)
 
-        # Сохраяем настройки
+        # Сохраняем настройки
         if save_settings(data):
             global hotkeys
             hotkeys = data
@@ -1822,7 +1980,7 @@ devices = []
 current_device_index = 0
 running = False
 
-# Добавляем глобальные переменны для устройств ввода
+# Добавляем глобальные переменные для устройств ввода
 input_devices = []
 current_input_device_index = 0
 
@@ -1873,7 +2031,7 @@ def get_autostart_status():
     except WindowsError:
         return False
 
-def set_autostart(enable):
+def toggle_autostart(enable):
     """Включает или выключает автозагрузку приложения"""
     key = None
     try:
@@ -1883,24 +2041,20 @@ def set_autostart(enable):
             0,
             winreg.KEY_ALL_ACCESS
         )
-
-        if not enable:
-            try:
-                winreg.DeleteValue(key, "SoundDeviceControl")
-                return True
-            except WindowsError:
-                return False
-        else:
-            app_path = sys.argv[0]
+        
+        app_path = sys.argv[0]
+        if enable:
             if app_path.endswith('.py'):
-                # Для Python скрипта
+                # Для Python файла
                 python_path = sys.executable
+                script_path = os.path.abspath(app_path)
+                command = f'"{python_path}" "{script_path}"'
                 winreg.SetValueEx(
                     key,
                     "SoundDeviceControl",
                     0,
                     winreg.REG_SZ,
-                    f'"{python_path}" "{os.path.abspath(app_path)}"'
+                    command
                 )
             else:
                 # Для exe файла
@@ -1911,9 +2065,14 @@ def set_autostart(enable):
                     winreg.REG_SZ,
                     os.path.abspath(app_path)
                 )
-            return True
-    except Exception as e:
-        print(f"Error setting autostart: {e}")
+        else:
+            try:
+                winreg.DeleteValue(key, "SoundDeviceControl")
+            except WindowsError:
+                pass  # Значение уже удалено
+        return True
+    except WindowsError as e:
+        print(f"Ошибка при работе с реестром: {e}")
         return False
     finally:
         if key:
@@ -1940,7 +2099,7 @@ def set_autostart_route():
         data = request.json
         enable = data.get("enable", False)
         
-        success = set_autostart(enable)
+        success = toggle_autostart(enable)
         return jsonify({
             "status": "success" if success else "error"
         })
@@ -1965,7 +2124,7 @@ def set_theme():
 
 @app.route("/get_notification_position")
 def get_notification_position():
-    """Возвращает текущую позицию уведомлений и список доступных позицй"""
+    """Возвращает текущую позицию уведомлений и список доступных позиций"""
     try:
         return jsonify({
             "status": "success",
@@ -2025,7 +2184,8 @@ class DeviceChangeListener:
     def __init__(self):
         self.running = True
         self.last_check = 0
-        self.check_interval = 1  # Интервал проверки в секундах
+        self.check_interval = 5.0  # Увеличиваем интервал до 5 секунд
+        self.device_states = {}  # Кэш состояний устройств
         
         # Создаем скрытое окно для получения сообщений Windows
         wc = win32gui.WNDCLASS()
@@ -2055,20 +2215,43 @@ class DeviceChangeListener:
         return win32gui.DefWindowProc(hwnd, msg, wparam, lparam)
 
     def _check_devices(self):
-        """Периодически проверяет устройсва"""
+        """Периодически проверяет устройства"""
         while self.running:
             current_time = time.time()
             if current_time - self.last_check >= self.check_interval:
-                notify_device_changes()
+                # Получаем текущие состояния устройств только если прошло достаточно времени
+                current_states = self._get_device_states()
+                
+                # Сравниваем с предыдущими состояниями
+                if current_states != self.device_states:
+                    notify_device_changes()
+                    self.device_states = current_states
+                
                 self.last_check = current_time
-            time.sleep(0.5)
+            time.sleep(2.0)  # Увеличиваем интервал сна до 2 секунды
+
+    def _get_device_states(self):
+        """Получает текущие состояния устройств"""
+        states = {}
+        try:
+            # Получаем списки устройств
+            output_devices = get_audio_devices()
+            input_devices = get_input_devices()
+            
+            # Сохраняем состояния
+            states['output'] = [(d[0], d[1]) for d in output_devices]
+            states['input'] = [(d[0], d[1]) for d in input_devices]
+        except Exception as e:
+            print(f"Error getting device states: {e}")
+        
+        return states
 
     def stop(self):
         self.running = False
         if self.hwnd:
             win32gui.DestroyWindow(self.hwnd)
 
-# Добавляем класс для р��оты с профилями
+# Добавляем класс для работы с профилями
 class DeviceProfile:
     def __init__(self, name):
         self.name = name
@@ -2082,70 +2265,435 @@ class DeviceProfile:
         }
         self.trigger_app = None  # Путь к приложению-триггеру
 
+def get_device_name_by_id(device_id, devices_list):
+    """Получает имя устройства по его ID"""
+    for device in devices_list:
+        if device[0] == device_id:
+            return device[1]
+    return None
+
+def get_device_id_by_name(device_name, devices_list):
+    """Получает ID устройства по его имени"""
+    for device in devices_list:
+        if device[1] == device_name:
+            return device[0]
+    return None
+
 class ProfileManager:
     def __init__(self):
+        # Инициализируем базовые атрбуты
         self.profiles = []
         self.current_profile = None
-        self.load_profiles()
+        self.disconnected_devices = {
+            'output': {},  # {'device_name': {'id': 'last_known_id', 'last_seen': timestamp}}
+            'input': {}
+        }
         
+        # Загружаем данные
+        try:
+            self.load_profiles()
+            self.load_disconnected_devices()
+        except Exception as e:
+            print(f"Error during initialization: {e}")
+            # Убеждаемся, что disconnected_devices всегда инициализирован
+            self.disconnected_devices = {
+                'output': {},
+                'input': {}
+            }
+        
+        # Активируем профиль при запуске
+        self.activate_startup_profile()
+
+    def load_disconnected_devices(self):
+        """Загружает список отключенных устройств из файла"""
+        try:
+            if os.path.exists('disconnected_devices.json'):
+                with open('disconnected_devices.json', 'r', encoding='utf-8') as f:
+                    loaded_data = json.load(f)
+                    # Проверяем структуру загруженных данных
+                    if isinstance(loaded_data, dict) and 'output' in loaded_data and 'input' in loaded_data:
+                        self.disconnected_devices = loaded_data
+                    else:
+                        raise ValueError("Invalid disconnected devices data structure")
+        except Exception as e:
+            print(f"Error loading disconnected devices: {e}")
+            # Сбрасываем к начальному состоянию при ошибке
+            self.disconnected_devices = {
+                'output': {},
+                'input': {}
+            }
+
+    def update_device_status(self):
+        """Обновляет статус подключенных/отключенных устройств"""
+        if not hasattr(self, 'disconnected_devices'):
+            self.disconnected_devices = {
+                'output': {},
+                'input': {}
+            }
+        
+        current_time = time.time()
+        
+        # Проверяем выходные устройства
+        current_devices = get_audio_devices()
+        current_names = {device[1]: device[0] for device in current_devices}
+        
+        # Обновляем статус отключенных устройств
+        for device_name in list(self.disconnected_devices['output'].keys()):
+            if device_name in current_names:
+                # Устройство снова подключено
+                del self.disconnected_devices['output'][device_name]
+            else:
+                # Обновляем timestamp для отключенного устройства
+                self.disconnected_devices['output'][device_name]['last_seen'] = current_time
+        
+        # Добавляем новые отключенные устройства
+        for name, id in current_names.items():
+            if not self.is_device_connected(name, current_devices):
+                if name not in self.disconnected_devices['output']:
+                    self.disconnected_devices['output'][name] = {
+                        'id': id,
+                        'last_seen': current_time
+                    }
+        
+        # То же самое для входных устройств
+        current_devices = get_input_devices()
+        current_names = {device[1]: device[0] for device in current_devices}
+        
+        for device_name in list(self.disconnected_devices['input'].keys()):
+            if device_name in current_names:
+                del self.disconnected_devices['input'][device_name]
+            else:
+                self.disconnected_devices['input'][device_name]['last_seen'] = current_time
+        
+        for name, id in current_names.items():
+            if not self.is_device_connected(name, current_devices):
+                if name not in self.disconnected_devices['input']:
+                    self.disconnected_devices['input'][name] = {
+                        'id': id,
+                        'last_seen': current_time
+                    }
+        
+        self.save_disconnected_devices()
+
+    def save_disconnected_devices(self):
+        """Сохраняет список отключенных устройств в файл"""
+        try:
+            with open('disconnected_devices.json', 'w', encoding='utf-8') as f:
+                json.dump(self.disconnected_devices, f, ensure_ascii=False, indent=4)
+        except Exception as e:
+            print(f"Error saving disconnected devices: {e}")
+
+    def activate_startup_profile(self):
+        """Активирует профиль, помеченный для запуска при старте"""
+        startup_profiles = [p for p in self.profiles if p.get('activate_on_startup', False)]
+        if startup_profiles:
+            # Если есть несколько профилей с activate_on_startup, берем первый
+            self.activate_profile(startup_profiles[0]['name'])
+
+    def save_profile(self, profile_data):
+        """Сохраняет профиль"""
+        try:
+            profile_name = profile_data.get('name')
+            if not profile_name:
+                return {'status': 'error', 'message': 'Profile name is required'}
+
+            # Очищаем имена устройств от статуса (Disconnected)
+            for key in ['output_default', 'output_communication', 'input_default', 'input_communication']:
+                if profile_data.get(key):
+                    profile_data[key] = profile_data[key].replace(" (Disconnected)", "")
+
+            # Проверяем существование профиля
+            existing_profile = next((p for p in self.profiles if p['name'] == profile_name), None)
+            
+            # Создаем новый профиль с правильными значениями по умолчанию
+            new_profile = {
+                'name': profile_name,
+                'output_default': profile_data.get('output_default', ''),
+                'output_communication': profile_data.get('output_communication', ''),
+                'input_default': profile_data.get('input_default', ''),
+                'input_communication': profile_data.get('input_communication', ''),
+                'hotkey': profile_data.get('hotkey', {'keyboard': 'None', 'mouse': 'None'}),
+                'trigger_app': profile_data.get('trigger_app', ''),
+                'force_trigger': bool(profile_data.get('force_trigger', False)),
+                'activate_on_startup': bool(profile_data.get('activate_on_startup', False))
+            }
+
+            print(f"Saving profile with data: {new_profile}")
+
+            if existing_profile:
+                # Обновляем существующий профиль
+                for i, profile in enumerate(self.profiles):
+                    if profile['name'] == profile_name:
+                        self.profiles[i] = new_profile
+                        break
+            else:
+                # Добавляем новый профиль
+                self.profiles.append(new_profile)
+
+            # Сохраняем обновленный список профилей
+            self.save_profiles_to_file()
+            return {'status': 'success'}
+
+        except Exception as e:
+            print(f"Error saving profile: {e}")
+            return {'status': 'error', 'message': str(e)}
+
+    def save_profiles_to_file(self):
+        """Сохраняет профили в файл"""
+        try:
+            with open('profiles.json', 'w', encoding='utf-8') as f:
+                # Используем ensure_ascii=False для сохранения Unicode как есть
+                json.dump(self.profiles, f, ensure_ascii=False, indent=4)
+            print("Profiles saved successfully")
+        except Exception as e:
+            print(f"Error saving profiles to file: {e}")
+
     def load_profiles(self):
         """Загружает профили из файла"""
         try:
             if os.path.exists('profiles.json'):
                 with open('profiles.json', 'r', encoding='utf-8') as f:
                     self.profiles = json.load(f)
+                    # Убеждаемся, что все профили имеют поле activate_on_startup
+                    for profile in self.profiles:
+                        if 'activate_on_startup' not in profile:
+                            profile['activate_on_startup'] = False
+            else:
+                self.profiles = []
         except Exception as e:
             print(f"Error loading profiles: {e}")
             self.profiles = []
-            
-    def save_profiles_to_file(self):
-        """Сохраняет профили в файл"""
-        try:
-            with open('profiles.json', 'w', encoding='utf-8') as f:
-                json.dump(self.profiles, f, indent=4, ensure_ascii=False)
-            return True
-        except Exception as e:
-            print(f"Error saving profiles to file: {e}")
-            return False
-            
+        
     def get_profile(self, name):
         """Получает профиль по имени"""
         for profile in self.profiles:
             if profile.get('name') == name:
                 return profile
         return None
-
-    def save_profiles(self):
-        try:
-            with open(self.profiles_file, 'w') as f:
-                json.dump(self.profiles, f, indent=4)
-        except Exception as e:
-            print(f"Error saving profiles: {e}")
-
+        
     def get_profiles(self):
         return self.profiles
-
+        
     def add_profile(self, profile):
+        """Добавляет новый профиль"""
         if any(p['name'] == profile['name'] for p in self.profiles):
             return False
-        # Добавляем поле force_trigger со значением по умолчанию False
+            
+        # Очищаем имена устройств от статуса (Disconnected)
+        for key in ['output_default', 'output_communication', 'input_default', 'input_communication']:
+            if profile.get(key) and " (Disconnected)" in profile[key]:
+                profile[key] = profile[key].replace(" (Disconnected)", "")
+        
+        # Добавляем пол force_trigger со значением по умолчанию False
         if 'force_trigger' not in profile:
             profile['force_trigger'] = False
+            
+        # Добавляем поле activate_on_startup со значением по умолчанию False
+        if 'activate_on_startup' not in profile:
+            profile['activate_on_startup'] = False
+            
         self.profiles.append(profile)
-        self.save_profiles()
+        self.save_profiles_to_file()
         return True
-
+        
     def update_profile(self, profile):
+        """Обновляет существующий профиль"""
+        # Очищаем имена устройств от статуса (Disconnected)
+        for key in ['output_default', 'output_communication', 'input_default', 'input_communication']:
+            if profile.get(key) and " (Disconnected)" in profile[key]:
+                profile[key] = profile[key].replace(" (Disconnected)", "")
+                
         for i, p in enumerate(self.profiles):
             if p['name'] == profile['name']:
                 self.profiles[i] = profile
-                self.save_profiles()
+                self.save_profiles_to_file()
                 return True
         return False
-
+        
     def delete_profile(self, name):
+        """Удаляет профиль"""
+        # Удаляем профиль из списка
         self.profiles = [p for p in self.profiles if p['name'] != name]
-        self.save_profiles()
+        
+        # Сохраняем обновленный список с правильной кодировкой
+        try:
+            with open('profiles.json', 'w', encoding='utf-8') as f:
+                json.dump(self.profiles, f, indent=4, ensure_ascii=False)
+        except Exception as e:
+            print(f"Error saving profiles after deletion: {e}")
+            # Восстанавливаем список профилей
+            self.load_profiles()
+
+    def add_disconnected_device(self, device_name, device_id, is_input=False):
+        """Добавляет устройство в список отключенных"""
+        device_type = 'input' if is_input else 'output'
+        if device_name not in self.disconnected_devices[device_type]:
+            self.disconnected_devices[device_type][device_name] = {
+                'id': device_id,
+                'last_seen': time.time()
+            }
+        self.save_disconnected_devices()
+
+    def is_device_disconnected(self, device_name, is_input=False):
+        """Проверяет, является ли устройство отключенным"""
+        if not device_name:
+            return False
+            
+        device_type = 'input' if is_input else 'output'
+        return device_name in self.disconnected_devices[device_type]
+
+    def get_device_status(self, device_name, is_input=False):
+        """Возвращает статус устройства и его ID"""
+        if not device_name:
+            return None
+            
+        device_type = 'input' if is_input else 'output'
+        devices_list = get_input_devices() if is_input else get_audio_devices()
+        
+        # Проверяем текущие подключенные устройства
+        for device in devices_list:
+            if device[1] == device_name:
+                return {
+                    'connected': True,
+                    'id': device[0]
+                }
+        
+        # Проверяем отключенные устройства
+        if device_name in self.disconnected_devices[device_type]:
+            return {
+                'connected': False,
+                'id': self.disconnected_devices[device_type][device_name]['id']
+            }
+            
+        return None
+
+    def is_device_connected(self, device_name, devices_list):
+        """Проверяет, подключено ли устройство"""
+        if not device_name:
+            return False
+        return any(device[1] == device_name for device in devices_list)
+
+    def get_device_id(self, device_name, is_input=False):
+        """Получает ID устройства по имени"""
+        if not device_name:
+            return None
+            
+        # Проверяем текущие устройства
+        devices_list = get_input_devices() if is_input else get_audio_devices()
+        for device in devices_list:
+            if device[1] == device_name:
+                return device[0]
+        
+        # Проверяем отключенные устройства
+        device_type = 'input' if is_input else 'output'
+        if device_name in self.disconnected_devices[device_type]:
+            return self.disconnected_devices[device_type][device_name]['id']
+        
+        return None
+
+    def activate_profile(self, name):
+        """Активирует профиль по имени"""
+        try:
+            profile = self.get_profile(name)
+            if not profile:
+                print(f"Profile not found: {name}")
+                return False
+                
+            print(f"Activating profile with settings: {profile}")
+            
+            # Обновляем статус устройств
+            self.update_device_status()
+            
+            # Функция для проверки и установки устройства
+            def set_device_if_available(device_name, setter_func, is_input=False):
+                if not device_name:
+                    return
+                    
+                # Очищаем имя устройства от статуса (Disconnected)
+                clean_name = device_name.replace(" (Disconnected)", "")
+                
+                # Проверяем, подключено ли устройство
+                devices_list = get_input_devices() if is_input else get_audio_devices()
+                device_connected = False
+                device_id = None
+                
+                # Сначала ищем среди подключенных устройств
+                for device in devices_list:
+                    if device[1] == clean_name:
+                        device_connected = True
+                        device_id = device[0]
+                        break
+                
+                # Если устройство не найдено среди подключенных, проверяем отключенные
+                if not device_connected:
+                    device_type = 'input' if is_input else 'output'
+                    if clean_name in self.disconnected_devices[device_type]:
+                        device_id = self.disconnected_devices[device_type][clean_name]['id']
+                
+                # Если устройство найдено и подключено, активируем его
+                if device_connected and device_id:
+                    print(f"Setting device: {clean_name} (ID: {device_id})")
+                    setter_func(device_id)
+                else:
+                    print(f"Device {clean_name} is disconnected, skipping")
+                    show_notification(f"Device {clean_name} is disconnected", "speaker" if not is_input else "microphone")
+            
+            # Применяем настройки профиля
+            if profile.get('input_default'):
+                set_device_if_available(profile['input_default'], set_default_input_device, True)
+                
+            if profile.get('input_communication'):
+                set_device_if_available(profile['input_communication'], set_default_input_communication_device, True)
+                
+            if profile.get('output_default'):
+                set_device_if_available(profile['output_default'], set_default_audio_device, False)
+                
+            if profile.get('output_communication'):
+                set_device_if_available(profile['output_communication'], set_default_communication_device, False)
+                
+            self.current_profile = profile
+            print(f"Profile activated: {name}")
+            show_notification(f"Profile activated: {name}", "speaker")
+            return True
+            
+        except Exception as e:
+            print(f"Error activating profile: {e}")
+            return False
+
+    def create_profile_card(self, profile):
+        """Создает HTML-карточку для профиля"""
+        card = f"""
+        <div class="profile-card" id="profile-{profile['name']}">
+            <h3>{profile['name']}</h3>
+            <div class="profile-details">"""
+        
+        # Добавляем информацию об устройствах
+        if profile.get('output_default'):
+            card += f'<div class="device-info">Default Output: {profile["output_default"]}</div>'
+        if profile.get('output_communication'):
+            card += f'<div class="device-info">Communication Output: {profile["output_communication"]}</div>'
+        if profile.get('input_default'):
+            card += f'<div class="device-info">Default Input: {profile["input_default"]}</div>'
+        if profile.get('input_communication'):
+            card += f'<div class="device-info">Communication Input: {profile["input_communication"]}</div>'
+        
+        # Добавляем статус Force Mode
+        force_mode = profile.get('force_mode', False)
+        force_mode_status = "Enabled" if force_mode else "Disabled"
+        card += f'<div class="device-info">Force Mode: {force_mode_status}</div>'
+        
+        # Добавляем статус Activate on Startup
+        activate_on_startup = profile.get('activate_on_startup', False)
+        startup_status = "Enabled" if activate_on_startup else "Disabled"
+        card += f'<div class="device-info">Activate on Startup: {startup_status}</div>'
+        
+        # Добавляем кнопку удаления
+        card += f"""
+            </div>
+            <button class="delete-btn" onclick="deleteProfile('{profile['name']}')">Delete</button>
+        </div>
+        """
+        return card
 
 # Создаем глобальный экземпляр ProfileManager в начале файла, после определения класса
 profile_manager = None
@@ -2181,22 +2729,11 @@ def monitor_processes():
     error_cooldown = 60  # Минимальный интервал между повторными ошибками в секундах
     activated_apps = set()  # Множество для хранения уже активированных приложений
     force_activated_apps = {}  # Словарь для хранения состояния force-активированных приложений
-    current_devices = {}  # Словарь для хранения текущих устройств
     
     while running:
         try:
-            # Получаем текущие устройства
-            new_devices = {
-                'output_default': get_default_output_device(),
-                'output_communication': get_default_communication_output_device(),
-                'input_default': get_default_input_device(),
-                'input_communication': get_default_communication_input_device()
-            }
-            
-            # Проверяем, изменились ли устройства
-            devices_changed = current_devices != new_devices
-            if devices_changed:
-                current_devices = new_devices.copy()
+            # Обновляем ст��тус устройств
+            profile_manager.update_device_status()
             
             # Проверяем каждый профиль
             for profile in profile_manager.get_profiles():
@@ -2211,34 +2748,40 @@ def monitor_processes():
                     if force_mode:
                         # В режиме force активируем профиль в двух случаях:
                         # 1. Приложение только что запустилось
-                        # 2. Устройства изменились на отличные от указанных в профиле
+                        # 2. Устройства изменились
                         should_activate = False
                         
                         # Проверяем, запущено ли приложение впервые
                         if app_key not in force_activated_apps:
                             should_activate = True
                             force_activated_apps[app_key] = {
-                                'profile': profile.copy(),
-                                'devices': new_devices.copy()
+                                'profile': profile.copy()
                             }
                         else:
-                            # Проверяем, изменились ли устройства на отличные от профиля
-                            if devices_changed:
-                                current_profile_devices = {
-                                    'output_default': profile['output_default'],
-                                    'output_communication': profile['output_communication'],
-                                    'input_default': profile['input_default'],
-                                    'input_communication': profile['input_communication']
-                                }
+                            # Проверяем, изменились ли устройства
+                            current_profile = force_activated_apps[app_key]['profile']
+                            
+                            # Функция для проверки изменений устройства
+                            def device_changed(current_name, new_name, is_input=False):
+                                if not current_name or not new_name:
+                                    return current_name != new_name
+                                    
+                                current_status = profile_manager.get_device_status(current_name, is_input)
+                                new_status = profile_manager.get_device_status(new_name, is_input)
                                 
-                                # Проверяем, что текущие устройства отличаются от профиля
-                                # и что последняя активация не была только что
-                                if (any(new_devices[key] != current_profile_devices[key] 
-                                       for key in new_devices 
-                                       if current_profile_devices[key]) and  # Проверяем только заполненные поля
-                                    force_activated_apps[app_key]['devices'] != new_devices):
-                                    should_activate = True
-                                    force_activated_apps[app_key]['devices'] = new_devices.copy()
+                                if not current_status or not new_status:
+                                    return True
+                                    
+                                return (current_status['connected'] != new_status['connected'] or
+                                       current_status['id'] != new_status['id'])
+                            
+                            # Проверяем изменения в устройствах
+                            if (device_changed(current_profile.get('output_default'), profile.get('output_default')) or
+                                device_changed(current_profile.get('output_communication'), profile.get('output_communication')) or
+                                device_changed(current_profile.get('input_default'), profile.get('input_default'), True) or
+                                device_changed(current_profile.get('input_communication'), profile.get('input_communication'), True)):
+                                should_activate = True
+                                force_activated_apps[app_key]['profile'] = profile.copy()
                         
                         if should_activate:
                             print(f"Activating force mode profile {profile['name']} by trigger app")
@@ -2260,14 +2803,13 @@ def monitor_processes():
                     activated_apps.discard(app_key)
                     force_activated_apps.pop(app_key, None)
                     
-            time.sleep(2)  # Проверяем каждые 2 секунды
-                    
         except Exception as e:
             current_time = time.time()
             if current_time - last_error_time > error_cooldown:
                 print(f"Error in monitor_processes: {e}")
                 last_error_time = current_time
-            time.sleep(5)  # В случае ошибки ждем подольше
+                
+        time.sleep(1)  # Пауза между проверками
 
 def activate_profile(name):
     """Активирует профиль по имени"""
@@ -2282,28 +2824,63 @@ def activate_profile(name):
             print(f"Profile not found: {name}")
             return False
             
-        print(f"Activating profile with settings: {profile}")  # Отладочный вывод
+        print(f"Activating profile with settings: {profile}")
+        
+        # Обновляем статус устройств
+        profile_manager.update_device_status()
+        
+        # Функция для проверки и установки устройства
+        def set_device_if_available(device_name, setter_func, is_input=False):
+            if not device_name:
+                return
+                
+            # Очищаем имя устройства от статуса (Disconnected)
+            clean_name = device_name.replace(" (Disconnected)", "")
             
+            # Проверяем, подключено ли устройство
+            devices_list = get_input_devices() if is_input else get_audio_devices()
+            device_connected = False
+            device_id = None
+            
+            # Сначала ищем среди подключенных стройств
+            for device in devices_list:
+                if device[1] == clean_name:
+                    device_connected = True
+                    device_id = device[0]
+                    break
+            
+            # Если устройство не найдено среди подключенных, роверяем отключнные
+            if not device_connected:
+                device_type = 'input' if is_input else 'output'
+                if clean_name in profile_manager.disconnected_devices[device_type]:
+                    device_id = profile_manager.disconnected_devices[device_type][clean_name]['id']
+            
+            # Если устройство найдено и подключено, активируем его
+            if device_connected and device_id:
+                print(f"Setting device: {clean_name} (ID: {device_id}")
+                setter_func(device_id)
+            else:
+                print(f"Device {clean_name} is disconnected, skipping")
+                show_notification(f"Device {clean_name} is disconnected", "speaker" if not is_input else "microphone")
+        
         # Применяем настройки профиля
         if profile.get('input_default'):
-            print(f"Setting default input device: {profile['input_default']}")
-            set_default_input_device(profile['input_default'])
+            set_device_if_available(profile['input_default'], set_default_input_device, True)
             
         if profile.get('input_communication'):
-            print(f"Setting communication input device: {profile['input_communication']}")
-            set_default_input_communication_device(profile['input_communication'])
+            set_device_if_available(profile['input_communication'], set_default_input_communication_device, True)
             
         if profile.get('output_default'):
-            print(f"Setting default output device: {profile['output_default']}")
-            set_default_audio_device(profile['output_default'])
+            set_device_if_available(profile['output_default'], set_default_audio_device, False)
             
         if profile.get('output_communication'):
-            print(f"Setting communication output device: {profile['output_communication']}")
-            set_default_communication_device(profile['output_communication'])
+            set_device_if_available(profile['output_communication'], set_default_communication_device, False)
             
         profile_manager.current_profile = profile
         print(f"Profile activated: {name}")
+        show_notification(f"Profile activated: {name}", "speaker")
         return True
+        
     except Exception as e:
         print(f"Error activating profile: {e}")
         return False
@@ -2336,7 +2913,7 @@ def select_trigger_app():
         thread.join()
         file_path = getattr(thread, 'result', '')
 
-        print(f"Selected file: {file_path}")  # Отладочный вывод
+        print(f"Selected file: {file_path}")  # Оладочный вывод
 
         if file_path:
             response_data = {
@@ -2396,30 +2973,18 @@ def get_filename_from_path(path):
 
 @app.route('/profiles', methods=['GET', 'POST', 'PUT'])
 def handle_profiles():
-    profiles_file = 'profiles.json'
-    
+    """Обработчик запросов для работы с профилями"""
     if request.method == 'GET':
         try:
-            if os.path.exists(profiles_file):
-                with open(profiles_file, 'r') as f:
-                    profiles = json.load(f)
-                    # Создаем копию профилей, чтобы не модифицировать оригинальные данные
-                    profiles_response = []
-                    for profile in profiles:
-                        profile_copy = profile.copy()  # Копируем все поля
-                        if profile_copy.get('trigger_app'):
-                            profile_copy['trigger_app'] = get_filename_from_path(profile_copy['trigger_app'])
-                        profiles_response.append(profile_copy)
-            else:
-                profiles_response = []
-            return jsonify({'status': 'success', 'profiles': profiles_response})
+            profiles = profile_manager.get_profiles()
+            return jsonify({'status': 'success', 'profiles': profiles})
         except Exception as e:
             print(f"Error loading profiles: {e}")
             return jsonify({'status': 'error', 'message': str(e)}), 500
             
     elif request.method in ['POST', 'PUT']:
         try:
-            profile_data = request.get_json()
+            profile_data = request.get_json(force=True)  # Добавляем force=True для принудительного парсинга JSON
             print(f"Received profile data: {profile_data}")
             
             if not profile_data:
@@ -2429,62 +2994,15 @@ def handle_profiles():
             if not profile_data.get('name'):
                 print("Error: Profile name is required")
                 return jsonify({'status': 'error', 'message': 'Profile name is required'}), 400
-            
-            # Загружаем существующие профили
-            profiles = []
-            if os.path.exists(profiles_file):
-                try:
-                    with open(profiles_file, 'r') as f:
-                        profiles = json.load(f)
-                except json.JSONDecodeError as e:
-                    print(f"Error reading profiles file: {e}")
-                    profiles = []
-            
-            # Проверяем существование профиля
-            profile_exists = any(p['name'] == profile_data['name'] for p in profiles)
-            
-            if request.method == 'PUT' and not profile_exists:
-                return jsonify({'status': 'error', 'message': 'Profile not found'}), 404
-            
-            if request.method == 'POST' and profile_exists:
-                return jsonify({'status': 'error', 'message': 'Profile with this name already exists'}), 409
-            
-            # Создаем новый профиль с правильными значениями по умолчанию
-            new_profile = {
-                'name': profile_data['name'],
-                'output_default': profile_data.get('output_default', ''),
-                'output_communication': profile_data.get('output_communication', ''),
-                'input_default': profile_data.get('input_default', ''),
-                'input_communication': profile_data.get('input_communication', ''),
-                'hotkey': profile_data.get('hotkey', {'keyboard': 'None', 'mouse': 'None'}),
-                'trigger_app': profile_data.get('trigger_app'),
-                'force_trigger': profile_data.get('force_trigger', False)
-            }
-            
-            print(f"Processed profile data: {new_profile}")
-            
-            # Обновляем или добавляем профиль
-            if profile_exists:
-                profiles = [new_profile if p['name'] == profile_data['name'] else p for p in profiles]
+
+            result = profile_manager.save_profile(profile_data)
+            if result['status'] == 'success':
+                return jsonify({'status': 'success', 'message': 'Profile saved successfully'})
             else:
-                profiles.append(new_profile)
-            
-            try:
-                # Сохраняем обновленный список профилей
-                with open(profiles_file, 'w') as f:
-                    json.dump(profiles, f, indent=4)
-                
-                # Обновляем профили в мониторинге процессов
-                profile_manager.load_profiles()
-                
-                print("Profile saved successfully")
-                return jsonify({'status': 'success'})
-            except Exception as e:
-                print(f"Error saving profile to file: {e}")
-                return jsonify({'status': 'error', 'message': f'Error saving profile: {str(e)}'}), 500
+                return jsonify({'status': 'error', 'message': result.get('message', 'Failed to save profile')}), 400
             
         except Exception as e:
-            print(f"Error in handle_profiles: {e}")
+            print(f"Error saving profile: {e}")
             return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/delete_profile', methods=['POST'])
@@ -2510,19 +3028,22 @@ def delete_profile_by_name(profile_name):
     try:
         profiles_file = 'profiles.json'
         
-        # Загружаем текущие профили
+        # Декодируем имя профиля из URL
+        profile_name = unquote(profile_name)
+        
+        # Загружаем текущие профили с правильной кодировкой
         if not os.path.exists(profiles_file):
             return jsonify({'status': 'error', 'message': 'Profiles file not found'}), 404
             
-        with open(profiles_file, 'r') as f:
+        with open(profiles_file, 'r', encoding='utf-8') as f:
             profiles = json.load(f)
         
         # Находим и удаляем профиль
         profiles = [p for p in profiles if p['name'] != profile_name]
         
-        # Сохраняем обновленный список
-        with open(profiles_file, 'w') as f:
-            json.dump(profiles, f, indent=4)
+        # Сохраняем обновленный список с правильной кодировкой
+        with open(profiles_file, 'w', encoding='utf-8') as f:
+            json.dump(profiles, f, indent=4, ensure_ascii=False)
         
         # Обновляем профили в мониторинге процессов
         profile_manager.load_profiles()
@@ -2574,10 +3095,6 @@ def main():
     else:
         print(f"Found {len(input_devices)} audio input devices")
     
-    flask_thread = Thread(target=run_flask, daemon=True)
-    flask_thread.start()
-    print("Flask server started")
-    
     tracker = KeyboardMouseTracker()
     tracker.start()
     print("Mouse and keyboard tracking started")
@@ -2591,7 +3108,9 @@ def main():
     process_monitor_thread.start()
     print("Process monitoring started")
 
+    # Создаем и запус��аем системный трей
     tray = setup_tray()
+    app.tray = tray  # Сохраняем ссылку на трей в приложении Flask
     tray_thread = Thread(target=lambda: tray.run(), daemon=True)
     tray_thread.start()
     print("Tray icon started")
@@ -2740,6 +3259,41 @@ def is_process_running(process_path):
     except Exception as e:
         print(f"Error in is_process_running: {e}")
         return False
+
+def is_device_connected(device_name, devices_list):
+    """Проверяет, подключено ли устройство"""
+    return any(device[1] == device_name for device in devices_list)
+
+@app.route("/browser_closed", methods=["POST"])
+def browser_closed():
+    """Обработчик закрытия окна браузера"""
+    try:
+        # Останавливаем сервер
+        if hasattr(app, 'tray') and app.tray:
+            app.tray.stop_server()
+        return jsonify({"status": "success"})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
+
+@app.route("/save_profile", methods=["POST"])
+def save_profile_route():
+    """Сохраняет профиль устройств"""
+    try:
+        profile_data = request.json
+        if not profile_data:
+            return jsonify({
+                "status": "error",
+                "message": "No profile data received"
+            })
+
+        result = profile_manager.save_profile(profile_data)
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error saving profile: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        })
 
 if __name__ == "__main__":
     main()
