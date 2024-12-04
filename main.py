@@ -32,6 +32,24 @@ import tkinter as tk
 from tkinter import filedialog
 from urllib.parse import unquote
 
+# Глобальные переменные
+devices = []
+input_devices = []
+enabled_devices = set()
+enabled_input_devices = set()
+device_update_callbacks = []
+running = False
+current_device_index = 0
+current_input_device_index = 0
+
+# Добавляем в начало файла после импортов
+device_lock = Lock()
+input_device_lock = Lock()
+
+# Инициализируем Flask приложение
+app = Flask(__name__)
+app.json.ensure_ascii = False
+
 def check_powershell_module():
     """Проверяет наличие модуля AudioDeviceCmdlets"""
     try:
@@ -105,9 +123,6 @@ def install_powershell_module():
 # Проверяем и устанавливаем модуль при запуске
 if not check_powershell_module():
     install_powershell_module()
-
-app = Flask(__name__)
-app.json.ensure_ascii = False  # Добавляем эту строку для правильной работы с Unicode
 
 # Windows constants
 WM_APPCOMMAND = 0x319
@@ -540,7 +555,7 @@ def handle_hotkeys(tracker):
                     last_action_time[f'profile_{profile["name"]}'] = current_time
                     continue
             
-            # Проверяем остальные горячие клавиши
+            # Проверяем осталь��ые горячие клавиши
             for action, combo in hotkeys.items():
                 # Определяем задержку в зависимости от действия
                 delay = 0.09 if action in ['volume_up', 'volume_down'] else 0.2
@@ -964,7 +979,7 @@ def create_notification_icon(icon_type='speaker', size=64):
         ]
         draw.polygon(points, fill=speaker_color)
         
-        # Звуковые волн с улучшенным сглаживанием
+        # Звук��вые волн с улучшенным сглаживанием
         wave_color = (255, 255, 255, 200)
         for i in range(3):
             offset = i * 15
@@ -976,7 +991,6 @@ def create_notification_icon(icon_type='speaker', size=64):
 
     elif icon_type == 'microphone':
         mic_color = (255, 255, 255, 255)
-        
         # Основной корпус микрофона (более округлый)
         draw.rounded_rectangle([
             int(52 * scale), int(24 * scale),
@@ -996,7 +1010,7 @@ def create_notification_icon(icon_type='speaker', size=64):
         stand_y2 = base_y
         
         # Рисуем ножку с грдиентом
-        steps = 20  # Увеличиваем количество шагов для плавности
+        steps = 20  # Увеличиваем ко��и��ество шагов для плавности
         for i in range(steps):
             alpha = int(255 * (1 - i/steps * 0.3))
             current_color = (255, 255, 255, alpha)
@@ -1173,7 +1187,7 @@ class NotificationWindow:
                 win32gui.DrawText(memdc, text, -1, rect, 
                                 win32con.DT_LEFT | win32con.DT_VCENTER | win32con.DT_SINGLELINE)
 
-                # Копируем из памяти на экран напрямую
+                # Копируем из п��мяти на экран напрямую
                 win32gui.BitBlt(hdc, 0, 0, width, height, memdc, 0, 0, win32con.SRCCOPY)
 
                 # Очищаем ресурсы
@@ -1237,47 +1251,65 @@ def show_notification(message, icon_type='speaker'):
 # notification_thread = Thread(target=create_notification_window, daemon=True)
 # notification_thread.start()
 
-# Добавляем глобальную переменную для хранения активных устройств
-enabled_devices = set()
-
 def load_enabled_devices():
-    """Загружает список активнх устройств из файла"""
+    """Загружает список активных устройств из файла"""
     global enabled_devices
-    try:
-        with open('enabled_devices.json', 'r') as f:
-            enabled_devices = set(json.load(f))
-    except FileNotFoundError:
-        # Если файл не существт, все устройства активны по умолчанию
-        enabled_devices = set(device[0] for device in devices)
-        save_enabled_devices()
+    with device_lock:
+        try:
+            if os.path.exists('enabled_devices.json'):
+                with open('enabled_devices.json', 'r', encoding='utf-8') as f:
+                    loaded_devices = json.load(f)
+                    enabled_devices = set(str(device_id) for device_id in loaded_devices)
+            else:
+                # При первом запуске все устройства активны
+                devices_list = get_audio_devices()
+                enabled_devices = set(str(device[0]) for device in devices_list)
+                save_enabled_devices()
+        except Exception as e:
+            print(f"Error loading enabled devices: {e}")
+            # Не сбрасываем enabled_devices если произошла ошибка
+            if not hasattr(sys.modules[__name__], 'enabled_devices'):
+                enabled_devices = set()
 
 def save_enabled_devices():
-    """Сохраняет список актвых устройств в фал"""
-    try:
-        with open('enabled_devices.json', 'w') as f:
-            json.dump(list(enabled_devices), f)
-    except Exception as e:
-        print(f"Error saving enabled devices: {e}")
+    """Сохраняет список активных устройств в файл"""
+    with device_lock:
+        try:
+            with open('enabled_devices.json', 'w', encoding='utf-8') as f:
+                json.dump(list(enabled_devices), f, ensure_ascii=False, indent=4)
+                f.flush()
+                os.fsync(f.fileno())
+        except Exception as e:
+            print(f"Error saving enabled devices: {e}")
+            raise
 
 @app.route("/set_device_enabled", methods=["POST"])
 def set_device_enabled():
-    """Включает/выключает утройство в списке активных"""
+    """Включает/выключает устройство в списке активных"""
+    global enabled_devices
     try:
         data = request.json
-        device_index = data.get("device_index")
-        enabled = data.get("enabled", True)
+        device_index = str(data.get("device_index"))
+        enabled = data.get("enabled", False)
         
+        # Обновляем состояние
         if enabled:
             enabled_devices.add(device_index)
         else:
             enabled_devices.discard(device_index)
         
-        save_enabled_devices()
+        # Сразу сохраняем в файл
+        with open('enabled_devices.json', 'w', encoding='utf-8') as f:
+            json.dump(list(enabled_devices), f)
         
+        # Возвращаем только необходимый минимум данных
         return jsonify({
-            "status": "success"
+            "status": "success",
+            "device_index": device_index,
+            "enabled": enabled
         })
     except Exception as e:
+        print(f"Error in set_device_enabled: {e}")
         return jsonify({
             "status": "error",
             "message": str(e)
@@ -1304,19 +1336,23 @@ def switch_audio_device(direction):
                 device_name = current_device[1]
                 if not is_device_connected(device_name, devices):
                     profile_manager.add_disconnected_device(device_name, current_device[0])
-                
+            
             # Получаем список всех устройств, включая отключенные
             all_device_names = []
+            all_device_ids = []
+            
+            # Добавляем только устройства с активным чекбоксом
             for device in devices:
-                device_name = device[1]
-                all_device_names.append(device_name)
-                if profile_manager.is_device_disconnected(device_name):
+                if device[0] in enabled_devices:  # Проверяем, активировано ли устройство
+                    device_name = device[1]
                     all_device_names.append(device_name)
+                    all_device_ids.append(device[0])
             
             if not all_device_names:
+                show_notification("No enabled output devices found", "speaker")
                 return
                 
-            # Находим текущее устрйство в списке
+            # Находим текущее устройство в списке
             current_name = ""
             if current_device:
                 current_name = current_device[1]
@@ -1326,26 +1362,27 @@ def switch_audio_device(direction):
             except ValueError:
                 current_index = 0
             
-            # Опрееляем следующее устройство
+            # Определяем следующее устройство
             if direction == 'prev':
                 next_index = (current_index - 1) % len(all_device_names)
             else:
                 next_index = (current_index + 1) % len(all_device_names)
             
             next_device_name = all_device_names[next_index]
+            next_device_id = all_device_ids[next_index]
             
-            # Проверяем, подключен ли устройство
+            # Проверяем, подключено ли устройство
             is_disconnected = profile_manager.is_device_disconnected(next_device_name)
             
-            # Если устройство подключено, переключаемся на него
+            # Если устройство подключено, переключаемся на нег
             if not is_disconnected:
                 for i, device in enumerate(devices):
                     if device[1] == next_device_name:
                         current_device_index = i
-                        set_default_audio_device(device[0])
+                        set_default_audio_device(next_device_id)
                         break
             
-            # оказывае уведомление
+            # Показываем уведомление
             status = " (Disconnected)" if is_disconnected else ""
             show_notification(f"Switched to: {next_device_name}{status}")
                 
@@ -1386,7 +1423,7 @@ def exit_app(icon, item):
     global running
     running = False
 
-# Добавляем константу для отслеживания изменений устройств
+# Добавляем констану для отслеживания изменений устройств
 WM_DEVICECHANGE = 0x0219
 
 class SystemTray:
@@ -1453,7 +1490,7 @@ class SystemTray:
             if not self.server_thread or not self.server_thread.is_alive():
                 self.server_thread = Thread(target=self._run_flask_server, daemon=True)
                 self.server_thread.start()
-                time.sleep(0.5)  # Даем серверу время на запуск
+                time.sleep(0.5)  # Даем серверу время на запук
             webbrowser.open('http://127.0.0.1:5000')
         except Exception as e:
             self.log(f"Error opening settings: {e}")
@@ -1602,27 +1639,37 @@ def update_hotkey():
 def run_flask():
     app.run(host='127.0.0.1', port=5000, debug=False)
 
-# Добавлем глбальные переменные для устройств ввода
-enabled_input_devices = set()
-
 def load_enabled_input_devices():
     """Загружает список активных устройств ввода из файла"""
     global enabled_input_devices
-    try:
-        with open('enabled_input_devices.json', 'r') as f:
-            enabled_input_devices = set(json.load(f))
-    except FileNotFoundError:
-        # Если файл не существует, все устройства активны по умолчанию
-        enabled_input_devices = set(device[0] for device in input_devices)
-        save_enabled_input_devices()
+    with input_device_lock:
+        try:
+            if os.path.exists('enabled_input_devices.json'):
+                with open('enabled_input_devices.json', 'r', encoding='utf-8') as f:
+                    loaded_devices = json.load(f)
+                    enabled_input_devices = set(str(device_id) for device_id in loaded_devices)
+            else:
+                # При первом запуске все устройства активны
+                devices_list = get_input_devices()
+                enabled_input_devices = set(str(device[0]) for device in devices_list)
+                save_enabled_input_devices()
+        except Exception as e:
+            print(f"Error loading enabled input devices: {e}")
+            # Не сбрасываем enabled_input_devices если произошла ошибка
+            if not hasattr(sys.modules[__name__], 'enabled_input_devices'):
+                enabled_input_devices = set()
 
 def save_enabled_input_devices():
     """Сохраняет список активных устройств ввода в файл"""
-    try:
-        with open('enabled_input_devices.json', 'w') as f:
-            json.dump(list(enabled_input_devices), f)
-    except Exception as e:
-        print(f"Error saving enabled input devices: {e}")
+    with input_device_lock:
+        try:
+            with open('enabled_input_devices.json', 'w', encoding='utf-8') as f:
+                json.dump(list(enabled_input_devices), f, ensure_ascii=False, indent=4)
+                f.flush()
+                os.fsync(f.fileno())
+        except Exception as e:
+            print(f"Error saving enabled input devices: {e}")
+            raise
 
 @app.route("/get_input_devices")
 def get_input_devices_route():
@@ -1631,12 +1678,16 @@ def get_input_devices_route():
         devices = get_input_devices()
         device_list = []
         
+        # Загружаем текущие enabled устройства
+        load_enabled_input_devices()
+        
         # Добавляем подключенные устройства
         for device in devices:
             device_list.append({
                 'id': device[0],
                 'name': device[1],
-                'connected': True
+                'connected': True,
+                'enabled': str(device[0]) in enabled_input_devices
             })
             
         # Добавляем отключенные устройства
@@ -1646,7 +1697,8 @@ def get_input_devices_route():
                 device_list.append({
                     'id': device_info['id'],
                     'name': f"{device_name} (Disconnected)",
-                    'connected': False
+                    'connected': False,
+                    'enabled': str(device_info['id']) in enabled_input_devices
                 })
         
         return jsonify({
@@ -1662,22 +1714,30 @@ def get_input_devices_route():
 @app.route("/set_input_device_enabled", methods=["POST"])
 def set_input_device_enabled():
     """Включает/выключает устройство ввода в списке активных"""
+    global enabled_input_devices
     try:
         data = request.json
-        device_index = data.get("device_index")
-        enabled = data.get("enabled", True)
+        device_index = str(data.get("device_index"))
+        enabled = data.get("enabled", False)
         
+        # Обновляем состояние
         if enabled:
             enabled_input_devices.add(device_index)
         else:
             enabled_input_devices.discard(device_index)
         
-        save_enabled_input_devices()
+        # Сразу сохраняем в файл
+        with open('enabled_input_devices.json', 'w', encoding='utf-8') as f:
+            json.dump(list(enabled_input_devices), f)
         
+        # Возвращаем только необходимый минимум данных
         return jsonify({
-            "status": "success"
+            "status": "success",
+            "device_index": device_index,
+            "enabled": enabled
         })
     except Exception as e:
+        print(f"Error in set_input_device_enabled: {e}")
         return jsonify({
             "status": "error",
             "message": str(e)
@@ -1828,7 +1888,7 @@ def switch_input_device(direction):
                 if not input_devices:
                     return
             
-            # Получаем текщее устройство
+            # Получаем текущее устройство
             current_device = None
             if current_input_device_index < len(input_devices):
                 current_device = input_devices[current_input_device_index]
@@ -1838,16 +1898,20 @@ def switch_input_device(direction):
                 device_name = current_device[1]
                 if not is_device_connected(device_name, input_devices):
                     profile_manager.add_disconnected_device(device_name, current_device[0], is_input=True)
-                
+            
             # Получаем список всех устройств, включая отключенные
             all_device_names = []
+            all_device_ids = []
+            
+            # Добавляем только устройства с активным чекбоксом
             for device in input_devices:
-                device_name = device[1]
-                all_device_names.append(device_name)
-                if profile_manager.is_device_disconnected(device_name, is_input=True):
+                if device[0] in enabled_input_devices:  # Проверяем, активиовано ли устройство
+                    device_name = device[1]
                     all_device_names.append(device_name)
+                    all_device_ids.append(device[0])
             
             if not all_device_names:
+                show_notification("No enabled input devices found", "microphone")
                 return
                 
             # Находим текущее устройство в списке
@@ -1867,6 +1931,7 @@ def switch_input_device(direction):
                 next_index = (current_index + 1) % len(all_device_names)
             
             next_device_name = all_device_names[next_index]
+            next_device_id = all_device_ids[next_index]
             
             # Проверяем, подключено ли устройство
             is_disconnected = profile_manager.is_device_disconnected(next_device_name, is_input=True)
@@ -1876,12 +1941,12 @@ def switch_input_device(direction):
                 for i, device in enumerate(input_devices):
                     if device[1] == next_device_name:
                         current_input_device_index = i
-                        set_default_input_device(device[0])
+                        set_default_input_device(next_device_id)
                         break
             
             # Показываем уведомление
             status = " (Disconnected)" if is_disconnected else ""
-            show_notification(f"Input switched to: {next_device_name}{status}", 'microphone')
+            show_notification(f"Input switched to: {next_device_name}{status}", "microphone")
                 
         finally:
             pythoncom.CoUninitialize()
@@ -1922,12 +1987,16 @@ def get_output_devices():
         devices = get_audio_devices()
         device_list = []
         
+        # Загружаем текущие enabled устройства
+        load_enabled_devices()
+        
         # Добавляем подключенные устройства
         for device in devices:
             device_list.append({
                 'id': device[0],
                 'name': device[1],
-                'connected': True
+                'connected': True,
+                'enabled': str(device[0]) in enabled_devices
             })
             
         # Добавляем отключенные устройства
@@ -1937,7 +2006,8 @@ def get_output_devices():
                 device_list.append({
                     'id': device_info['id'],
                     'name': f"{device_name} (Disconnected)",
-                    'connected': False
+                    'connected': False,
+                    'enabled': str(device_info['id']) in enabled_devices
                 })
         
         return jsonify({
@@ -1949,6 +2019,7 @@ def get_output_devices():
             "status": "error",
             "message": str(e)
         })
+
 @app.route("/save_settings", methods=["POST"])
 def save_settings_endpoint():
     try:
@@ -1978,19 +2049,12 @@ def save_settings_endpoint():
         print(f"Error in save_settings_endpoint: {e}")
         return jsonify({"status": "error", "message": str(e)})
 
-# Добавляем глобальные переменные, если они были удалены
-devices = []
-current_device_index = 0
-running = False
-
-# Добавляем глобальные переменные для устройств ввода
-input_devices = []
-current_input_device_index = 0
-
 @app.route("/get_enabled_devices")
 def get_enabled_devices():
     """Возвращает список активных устройств вывода"""
     try:
+        # Обновляем список перед отправкой
+        load_enabled_devices()
         return jsonify({
             "status": "success",
             "enabled_devices": list(enabled_devices)
@@ -2005,6 +2069,8 @@ def get_enabled_devices():
 def get_enabled_input_devices():
     """Возвращает список активных устройств ввода"""
     try:
+        # Обновляем список перед отправкой
+        load_enabled_input_devices()
         return jsonify({
             "status": "success",
             "enabled_devices": list(enabled_input_devices)
@@ -2165,23 +2231,31 @@ def set_notification_position():
             "message": str(e)
         })
 
-# Добавляем глобальные переменные, если они были удалены
-device_update_callbacks = []
-
 def register_device_callback(callback):
     """Регистрирует функцию обратного вызова для обновления устройств"""
     device_update_callbacks.append(callback)
 
 def notify_device_changes():
-    """Уведомляет все зарегистриованные функции об изменении устройств"""
+    """Уведомляет все зарегистрированные функции об изменении устрйств"""
     global devices, input_devices
-    devices = get_audio_devices()
-    input_devices = get_input_devices()
-    for callback in device_update_callbacks:
-        try:
-            callback()
-        except Exception as e:
-            print(f"Error in device update callback: {e}")
+    try:
+        # Обновляем списки устройств
+        new_devices = get_audio_devices()
+        new_input_devices = get_input_devices()
+        
+        if new_devices is not None:
+            devices = new_devices
+        if new_input_devices is not None:
+            input_devices = new_input_devices
+        
+        # Уведомляем колбэки
+        for callback in device_update_callbacks:
+            try:
+                callback()
+            except Exception as e:
+                print(f"Error in device update callback: {e}")
+    except Exception as e:
+        print(f"Error in notify_device_changes: {e}")
 
 class DeviceChangeListener:
     def __init__(self):
@@ -2487,7 +2561,7 @@ class ProfileManager:
             if profile.get(key) and " (Disconnected)" in profile[key]:
                 profile[key] = profile[key].replace(" (Disconnected)", "")
         
-        # Добавляем пол force_trigger со значением по умолчанию False
+        # Добавляе пол force_trigger со значением по умолчанию False
         if 'force_trigger' not in profile:
             profile['force_trigger'] = False
             
@@ -2612,35 +2686,35 @@ class ProfileManager:
                 if not device_name:
                     return
                     
-                # Очищаем имя устройства от статуса (Disconnected)
-                clean_name = device_name.replace(" (Disconnected)", "")
+                    # Очищаем имя уст��ойства от статуса (Disconnected)
+                    clean_name = device_name.replace(" (Disconnected)", "")
+                    
+                    # Проверяем, подключено ли устройство
+                    devices_list = get_input_devices() if is_input else get_audio_devices()
+                    device_connected = False
+                    device_id = None
+                    
+                    # Сначала ищем среди подключенных устройств
+                    for device in devices_list:
+                        if device[1] == clean_name:
+                            device_connected = True
+                            device_id = device[0]
+                            break
+                    
+                    # Если устройство не найдено среди подключенных, проверяем отключенные
+                    if not device_connected:
+                        device_type = 'input' if is_input else 'output'
+                        if clean_name in self.disconnected_devices[device_type]:
+                            device_id = self.disconnected_devices[device_type][clean_name]['id']
+                    
+                    # Если устройство найдено и подключено, активируем его
+                    if device_connected and device_id:
+                        print(f"Setting device: {clean_name} (ID: {device_id})")
+                        setter_func(device_id)
+                    else:
+                        print(f"Device {clean_name} is disconnected, skipping")
+                        show_notification(f"Device {clean_name} is disconnected", "speaker" if not is_input else "microphone")
                 
-                # Проверяем, подключено ли устройство
-                devices_list = get_input_devices() if is_input else get_audio_devices()
-                device_connected = False
-                device_id = None
-                
-                # Сначала ищем среди подключенных устройств
-                for device in devices_list:
-                    if device[1] == clean_name:
-                        device_connected = True
-                        device_id = device[0]
-                        break
-                
-                # Если устройство не найдено среди подключенных, проверяем отключенные
-                if not device_connected:
-                    device_type = 'input' if is_input else 'output'
-                    if clean_name in self.disconnected_devices[device_type]:
-                        device_id = self.disconnected_devices[device_type][clean_name]['id']
-                
-                # Если устройство найдено и подключено, активируем его
-                if device_connected and device_id:
-                    print(f"Setting device: {clean_name} (ID: {device_id})")
-                    setter_func(device_id)
-                else:
-                    print(f"Device {clean_name} is disconnected, skipping")
-                    show_notification(f"Device {clean_name} is disconnected", "speaker" if not is_input else "microphone")
-            
             # Применяем настройки профиля
             if profile.get('input_default'):
                 set_device_if_available(profile['input_default'], set_default_input_device, True)
@@ -2670,7 +2744,7 @@ class ProfileManager:
             <h3>{profile['name']}</h3>
             <div class="profile-details">"""
         
-        # Добавляем информацию об устройствах
+        # Добавляем информацию об устройстах
         if profile.get('output_default'):
             card += f'<div class="device-info">Default Output: {profile["output_default"]}</div>'
         if profile.get('output_communication'):
@@ -2735,7 +2809,7 @@ def monitor_processes():
     
     while running:
         try:
-            # Обновляем ст��тус устройств
+            # Обновляем сттус устройств
             profile_manager.update_device_status()
             
             # Проверяем каждый профиль
@@ -2764,7 +2838,7 @@ def monitor_processes():
                             # Проверяем, изменились ли устройства
                             current_profile = force_activated_apps[app_key]['profile']
                             
-                            # Функция для проверки изменений устройства
+                            # Функц��я для про��ерки изменений устройства
                             def device_changed(current_name, new_name, is_input=False):
                                 if not current_name or not new_name:
                                     return current_name != new_name
@@ -2837,35 +2911,35 @@ def activate_profile(name):
             if not device_name:
                 return
                 
-            # Очищаем имя устройства от статуса (Disconnected)
-            clean_name = device_name.replace(" (Disconnected)", "")
+                # Очищаем имя устройства от статуса (Disconnected)
+                clean_name = device_name.replace(" (Disconnected)", "")
+                
+                # Проверяем, подключено ли устройство
+                devices_list = get_input_devices() if is_input else get_audio_devices()
+                device_connected = False
+                device_id = None
+                
+                # Сначала ищем среди подключенных стройств
+                for device in devices_list:
+                    if device[1] == clean_name:
+                        device_connected = True
+                        device_id = device[0]
+                        break
+                
+                # Если устройство не найдено среди подключенных, роверяем отключнные
+                if not device_connected:
+                    device_type = 'input' if is_input else 'output'
+                    if clean_name in profile_manager.disconnected_devices[device_type]:
+                        device_id = profile_manager.disconnected_devices[device_type][clean_name]['id']
+                
+                # Если устройство найдено и подключено, активируем его
+                if device_connected and device_id:
+                    print(f"Setting device: {clean_name} (ID: {device_id}")
+                    setter_func(device_id)
+                else:
+                    print(f"Device {clean_name} is disconnected, skipping")
+                    show_notification(f"Device {clean_name} is disconnected", "speaker" if not is_input else "microphone")
             
-            # Проверяем, подключено ли устройство
-            devices_list = get_input_devices() if is_input else get_audio_devices()
-            device_connected = False
-            device_id = None
-            
-            # Сначала ищем среди подключенных стройств
-            for device in devices_list:
-                if device[1] == clean_name:
-                    device_connected = True
-                    device_id = device[0]
-                    break
-            
-            # Если устройство не найдено среди подключенных, роверяем отключнные
-            if not device_connected:
-                device_type = 'input' if is_input else 'output'
-                if clean_name in profile_manager.disconnected_devices[device_type]:
-                    device_id = profile_manager.disconnected_devices[device_type][clean_name]['id']
-            
-            # Если устройство найдено и подключено, активируем его
-            if device_connected and device_id:
-                print(f"Setting device: {clean_name} (ID: {device_id}")
-                setter_func(device_id)
-            else:
-                print(f"Device {clean_name} is disconnected, skipping")
-                show_notification(f"Device {clean_name} is disconnected", "speaker" if not is_input else "microphone")
-        
         # Применяем настройки профиля
         if profile.get('input_default'):
             set_device_if_available(profile['input_default'], set_default_input_device, True)
@@ -3111,7 +3185,7 @@ def main():
     process_monitor_thread.start()
     print("Process monitoring started")
 
-    # Создаем и запус��аем системный трей
+    # Создаем и запусаем системный трей
     tray = setup_tray()
     app.tray = tray  # Сохраняем ссылку на трей в приложении Flask
     tray_thread = Thread(target=lambda: tray.run(), daemon=True)
@@ -3271,7 +3345,7 @@ def is_device_connected(device_name, devices_list):
 def browser_closed():
     """Обработчик закрытия окна браузера"""
     try:
-        # Останавливаем сервер
+        # Останвливаем сервр
         if hasattr(app, 'tray') and app.tray:
             app.tray.stop_server()
         return jsonify({"status": "success"})
@@ -3280,7 +3354,7 @@ def browser_closed():
 
 @app.route("/save_profile", methods=["POST"])
 def save_profile_route():
-    """Сохраняет профиль устройств"""
+    """Сораняет профиль устройств"""
     try:
         profile_data = request.json
         if not profile_data:
@@ -3293,6 +3367,57 @@ def save_profile_route():
         return jsonify(result)
     except Exception as e:
         print(f"Error saving profile: {e}")
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        })
+
+@app.route("/get_device_states", methods=["GET"])
+def get_device_states():
+    """Возвращает текущие состояния всех устройств"""
+    try:
+        output_states = {}
+        input_states = {}
+        
+        # Состояния устройств вывода
+        for device in devices:
+            output_states[str(device[0])] = {
+                'enabled': str(device[0]) in enabled_devices,
+                'connected': True
+            }
+        
+        # Добавляем отключенные устройства вывода
+        for device_name, device_info in profile_manager.disconnected_devices['output'].items():
+            device_id = str(device_info['id'])
+            if device_id not in output_states:
+                output_states[device_id] = {
+                    'enabled': device_id in enabled_devices,
+                    'connected': False
+                }
+        
+        # Состояния устройств ввода
+        for device in input_devices:
+            input_states[str(device[0])] = {
+                'enabled': str(device[0]) in enabled_input_devices,
+                'connected': True
+            }
+        
+        # Добавляем отключенные устройства ввода
+        for device_name, device_info in profile_manager.disconnected_devices['input'].items():
+            device_id = str(device_info['id'])
+            if device_id not in input_states:
+                input_states[device_id] = {
+                    'enabled': device_id in enabled_input_devices,
+                    'connected': False
+                }
+        
+        return jsonify({
+            "status": "success",
+            "output_devices": output_states,
+            "input_devices": input_states
+        })
+    except Exception as e:
+        print(f"Error in get_device_states: {e}")
         return jsonify({
             "status": "error",
             "message": str(e)
