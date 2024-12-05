@@ -1,4 +1,5 @@
-![image](https://github.com/user-attachments/assets/20f61832-91c1-4248-ba13-916635a82ae7)
+![image](https://github.com/user-attachments/assets/16e5b7ad-9f46-43ca-a330-c4ae35a86558)
+
 
 Sound Device Control App
 
