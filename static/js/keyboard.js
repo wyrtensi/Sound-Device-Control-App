@@ -1,4 +1,180 @@
+class VirtualKeyboard {
+    constructor() {
+        this.modal = document.getElementById('keyboardModal');
+        this.selectedKeys = {
+            keyboard: new Set(),
+            mouse: new Set()
+        };
+        this.currentInput = null;
+        this.setupEventListeners();
+    }
+
+    setupEventListeners() {
+        // Важно: добавляем селектор .mouse-key для поиска клавиш мыши
+        document.querySelectorAll('.keyboard-modal .key, .keyboard-modal .mouse-key').forEach(key => {
+            key.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.toggleKey(key);
+            });
+        });
+
+        // Добавляем опциональную цепочку для безопасного доступа
+        document.getElementById('applyHotkey')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.applyHotkey();
+        });
+
+        document.getElementById('cancelHotkey')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.hideKeyboard();
+        });
+
+        document.getElementById('clearHotkey')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.clearSelection();
+        });
+    }
+
+    // Новый метод для определения клавиш мыши
+    isMouseKey(keyName) {
+        const mouseKeys = new Set([
+            'scrollup', 'scrolldown', 
+            'mouseleft', 'mouseright', 'mousemiddle',
+            'lmb', 'rmb', 'mmb'
+        ]);
+        return mouseKeys.has(keyName.toLowerCase());
+    }
+
+    // Новый метод для нормализации имен клавиш
+    normalizeKeyName(keyName) {
+        if (!keyName) return '';
+        
+        const keyMap = {
+            'scrollup': 'scrollup',
+            'scrolldown': 'scrolldown',
+            'mouseleft': 'mouseleft',
+            'mouseright': 'mouseright',
+            'mousemiddle': 'mousemiddle',
+            'control': 'ctrl',
+            'windows': 'win',
+            'command': 'win',
+            'return': 'enter',
+            'escape': 'esc',
+            'lmb': 'mouseleft',
+            'rmb': 'mouseright',
+            'mmb': 'mousemiddle'
+        };
+
+        const normalized = keyName.toLowerCase();
+        return keyMap[normalized] || normalized;
+    }
+
+    // Обновленный метод для переключения клавиш
+    toggleKey(keyElement) {
+        const keyName = keyElement.getAttribute('data-key');
+        const normalizedKey = this.normalizeKeyName(keyName);
+        const isMouseKey = keyElement.classList.contains('mouse-key') || this.isMouseKey(normalizedKey);
+        const keySet = isMouseKey ? 'mouse' : 'keyboard';
+        
+        if (this.selectedKeys[keySet].has(normalizedKey)) {
+            keyElement.classList.remove('active');
+            this.selectedKeys[keySet].delete(normalizedKey);
+        } else {
+            keyElement.classList.add('active');
+            this.selectedKeys[keySet].add(normalizedKey);
+        }
+    }
+
+    // Обновленный метод для поиска элементов клавиш
+    findKeyElement(keyName) {
+        const normalizedKey = this.normalizeKeyName(keyName);
+        return Array.from(document.querySelectorAll('.keyboard-modal .key, .keyboard-modal .mouse-key')).find(
+            key => this.normalizeKeyName(key.getAttribute('data-key')) === normalizedKey
+        );
+    }
+
+    // Обновленный метод для применения горячих клавиш
+    applyHotkey() {
+        if (!this.currentInput) return;
+
+        // Преобразуем клавиши в нижний регистр
+        const keyboard = Array.from(this.selectedKeys.keyboard)
+            .map(key => key.toLowerCase())
+            .join('+') || "None";
+            
+        const mouse = Array.from(this.selectedKeys.mouse)
+            .map(key => key.toLowerCase())
+            .join('+') || "None";
+
+        this.currentInput.setAttribute('data-keyboard', keyboard);
+        this.currentInput.setAttribute('data-mouse', mouse);
+        this.currentInput.value = [...this.selectedKeys.keyboard, ...this.selectedKeys.mouse]
+            .map(key => key.toLowerCase())
+            .join('+') || "None";
+
+        this.hideKeyboard();
+        
+        // Генерируем событие изменения для обновления профиля
+        const event = new Event('change', { bubbles: true });
+        this.currentInput.dispatchEvent(event);
+    }
+
+    // Метод для очистки выбранных клавиш
+    clearSelection() {
+        document.querySelectorAll('.keyboard-modal .key.active, .keyboard-modal .mouse-key.active').forEach(key => {
+            key.classList.remove('active');
+        });
+        this.selectedKeys.keyboard.clear();
+        this.selectedKeys.mouse.clear();
+    }
+
+    // Метод для показа клавиатуры
+    showKeyboard(input) {
+        this.currentInput = input;
+        this.clearSelection();
+        
+        // Загружаем текущие значения
+        const keyboard = input.getAttribute('data-keyboard') || '';
+        const mouse = input.getAttribute('data-mouse') || '';
+        
+        // Устанавливаем активные клавиши
+        [...keyboard.split('+'), ...mouse.split('+')].filter(key => key && key !== 'None').forEach(key => {
+            const element = this.findKeyElement(key);
+            if (element) {
+                this.toggleKey(element);
+            }
+        });
+        
+        if (this.modal) {
+            this.modal.style.display = 'block';
+        }
+    }
+
+    // Метод для скрытия клавиатуры
+    hideKeyboard() {
+        if (this.modal) {
+            this.modal.style.display = 'none';
+        }
+        this.currentInput = null;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Инициализируем виртуальную клавиатуру
+    const virtualKeyboard = new VirtualKeyboard();
+
+    // Добавляем обработчики для полей ввода горячих клавиш
+    document.querySelectorAll('.hotkey-input').forEach(input => {
+        input.addEventListener('click', function(e) {
+            e.preventDefault();
+            virtualKeyboard.showKeyboard(this);
+        });
+    });
+
     // Добавляем стили для индикации состояния
     const style = document.createElement('style');
     style.textContent = `
