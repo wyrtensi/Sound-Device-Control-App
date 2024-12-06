@@ -167,12 +167,44 @@ document.addEventListener('DOMContentLoaded', function() {
     // Инициализируем виртуальную клавиатуру
     const virtualKeyboard = new VirtualKeyboard();
 
-    // Добавляем обработчики для полей ввода горячих клавиш
-    document.querySelectorAll('.hotkey-input').forEach(input => {
-        input.addEventListener('click', function(e) {
-            e.preventDefault();
-            virtualKeyboard.showKeyboard(this);
+    // Функция для инициализации обработчиков виртуальной клавиатуры
+    function initVirtualKeyboardHandlers(element = document) {
+        element.querySelectorAll('.hotkey-input, .profile-hotkey-input, [data-type="hotkey"], #profileHotkey, input[data-keyboard]').forEach(input => {
+            // Проверяем, не был ли уже добавлен обработчик
+            if (!input.hasAttribute('data-keyboard-initialized')) {
+                input.setAttribute('data-keyboard-initialized', 'true');
+                input.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    virtualKeyboard.showKeyboard(this);
+                });
+            }
         });
+    }
+
+    // Инициализируем обработчики для существующих полей
+    initVirtualKeyboardHandlers();
+
+    // Наблюдаем за изменениями в DOM для инициализации новых полей
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.addedNodes.length) {
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === 1) { // Проверяем, что это HTML элемент
+                        initVirtualKeyboardHandlers(node);
+                        // Также проверяем, не является ли node контейнером для нашего поля
+                        if (node.querySelector) {
+                            initVirtualKeyboardHandlers(node);
+                        }
+                    }
+                });
+            }
+        });
+    });
+
+    // Начинаем наблюдение за всем документом
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
     });
 
     // Добавляем стили для индикации состояния
