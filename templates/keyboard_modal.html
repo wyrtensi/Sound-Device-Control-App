@@ -104,7 +104,7 @@
                             <div class="key ctrl" data-key="Ctrl">Ctrl</div>
                             <div class="key win" data-key="Win">Win</div>
                             <div class="key alt" data-key="Alt">Alt</div>
-                            <div class="key space" data-key="Space">Space</div>
+                            <div class="key space" data-key="Space" style="min-width: calc(var(--key-size) * 4.5);">Space</div>
                             <div class="key alt" data-key="Alt">Alt</div>
                             <div class="key win" data-key="Win">Win</div>
                             <div class="key menu" data-key="Menu">Menu</div>
@@ -197,6 +197,7 @@
 </div>
 
 <style>
+    /* Базовые стили модального окна */
     .keyboard-modal {
         display: none;
         position: fixed;
@@ -207,25 +208,30 @@
         height: 100%;
         background-color: rgba(0, 0, 0, 0.85);
         backdrop-filter: blur(8px);
+        overflow: hidden;
     }
 
     .keyboard-modal-content {
         position: absolute;
         top: 50%;
         left: 50%;
-        transform: translate(-50%, -50%);
+        transform: translate(-50%, -50%) scale(1);
+        transform-origin: center center;
+        transition: transform 0.3s ease;
         background: rgba(45, 45, 45, 0.7);
         padding: 30px;
         border-radius: 15px;
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         backdrop-filter: blur(10px);
         border: 1px solid rgba(255, 255, 255, 0.1);
+        width: fit-content;
     }
 
     .keyboard-container {
-        padding: 25px;
+        gap: 20px;
+        padding: 20px;
         display: flex;
-        gap: 25px;
+        justify-content: flex-start;
         background: rgba(40, 40, 40, 0.6);
         border-radius: 15px;
         border: 1px solid rgba(255, 255, 255, 0.1);
@@ -236,30 +242,45 @@
         display: flex;
         flex-direction: column;
         gap: 2px;
+        margin-right: auto;
     }
 
     .function-keys {
         display: flex;
-        gap: 2px;
+        gap: 3px;
         margin-bottom: 20px;
-        padding-left: 2px;
+        padding-left: 0;
+        justify-content: flex-start;
     }
 
     /* Группы F-клавиш */
     .f-keys-group {
         display: flex;
-        gap: 2px;
+        gap: 3px;
     }
 
     /* Отступы между группами */
     .f-keys-group + .f-keys-group {
-        margin-left: 20px;
+        margin-left: 35px;
+    }
+
+    /* Отдельный отступ для Esc */
+    .f-keys-group:first-child {
+        margin-right: 35px;
+    }
+
+    .navigation-section {
+        margin-left: 25px;
+    }
+
+    .numpad {
+        margin-left: 25px;
     }
 
     .navigation-section {
         display: flex;
         flex-direction: column;
-        margin-left: 20px;
+        margin-left: 25px;
         margin-top: 0;
     }
 
@@ -276,27 +297,50 @@
 
     /* Обновляем стили для стрелок */
     .arrow-keys {
-        margin-top: 20px;
+        margin-top: 10px;
         display: flex;
         flex-direction: column;
-        gap: 0;
+        gap: 1px;
     }
 
     .arrow-row {
         display: flex;
         justify-content: center;
-        gap: 2px;
+        gap: 1px;
     }
 
-    /* Первый ряд (верхняя стрелка) */
-    .arrow-row:first-child {
-        margin-bottom: 2px;
+    /* Задаем базовый размер для стрелок такой же, как у обычых клавиш */
+    .arrow-keys .key {
+        min-width: var(--key-size);
+        height: var(--key-size);
+        padding: 4px;
+        font-size: calc(var(--key-size) * 0.4);
     }
 
-    /* Второй ряд (три стрелки в ряд) */
-    .arrow-row:last-child {
+    /* Обновляем стили для навигационных лавиш */
+    .navigation-keys {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1px;
+    }
+
+    .navigation-keys .key {
+        min-width: var(--key-size);
+        height: var(--key-size);
+        padding: 4px;
+        font-size: calc(var(--key-size) * 0.3);
+    }
+
+    .navigation-keys.top-row {
+        margin-bottom: 10px;
+    }
+
+    /* Обновляем отступы для навигационной секции */
+    .navigation-section {
+        margin-left: 25px;
         display: flex;
-        gap: 0;
+        flex-direction: column;
+        gap: 1px;
     }
 
     /* Скрываем пустые ячейки */
@@ -309,7 +353,7 @@
         display: grid;
         grid-template-columns: repeat(4, 1fr);
         gap: 2px;
-        margin-left: 20px;
+        margin-left: 25px;
     }
 
     /* Убираем абсолютное позиционирование */
@@ -320,21 +364,21 @@
     /* Размеры клавиш */
     .key {
         --key-size: 45px;
-        background: linear-gradient(145deg, #3a3a3a, #2d2d2d);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 8px;
-        color: #fff;
-        padding: 8px;
-        margin: 2px;
+        margin: 3px;
         min-width: var(--key-size);
         height: var(--key-size);
+        padding: 5px;
+        font-size: calc(var(--key-size) * 0.35);
+        border-radius: 5px;
+        background: linear-gradient(145deg, #3a3a3a, #2d2d2d);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        color: #fff;
         display: inline-flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
         user-select: none;
         transition: all 0.2s ease;
-        font-size: calc(var(--key-size) * 0.32);
         font-weight: 500;
         text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
@@ -353,21 +397,24 @@
     }
 
     /* Специальные размеры клавиш */
-    .key.backspace { min-width: calc(var(--key-size) * 2); }
-    .key.tab { min-width: calc(var(--key-size) * 1.5); }
-    .key.caps { min-width: calc(var(--key-size) * 1.75); }
-    .key.enter { min-width: calc(var(--key-size) * 2.25); }
-    .key.shift { min-width: calc(var(--key-size) * 2.25); }
-    .key.ctrl, .key.win, .key.alt { min-width: calc(var(--key-size) * 1.25); }
-    .key.space { min-width: calc(var(--key-size) * 6.25); }
+    .keyboard-row .key.backspace { min-width: calc(var(--key-size) * 2); }
+    .keyboard-row .key.tab { min-width: calc(var(--key-size) * 1.5); }
+    .keyboard-row .key.caps { min-width: calc(var(--key-size) * 1.8); }
+    .keyboard-row .key.enter { min-width: calc(var(--key-size) * 2.3); }
+    .keyboard-row .key.shift { min-width: calc(var(--key-size) * 2.5); }
+    .keyboard-row .key.ctrl { min-width: calc(var(--key-size) * 1.3); }
+    .keyboard-row .key.win { min-width: calc(var(--key-size) * 1.3); }
+    .keyboard-row .key.alt { min-width: calc(var(--key-size) * 1.3); }
+    .keyboard-row .key.space { min-width: calc(var(--key-size) * 4.5); }
+    .keyboard-row .key.menu { min-width: calc(var(--key-size) * 1.3); }
 
     .key.numpad-plus {
-        height: calc(var(--key-size) * 2 + 20px);
+        height: calc(var(--key-size) * 2 + 2px);
         grid-row: span 2;
     }
 
     .key.numpad-enter {
-        height: calc(var(--key-size) * 2 + 20px);
+        height: calc(var(--key-size) * 2 + 2px);
         grid-row: span 2;
     }
 
@@ -375,121 +422,98 @@
         grid-column: span 2;
     }
 
-    /* Медиа-запросы для масштабирования */
+    /* Простые медиа-запросы для масштабирования */
+    @media (max-width: 1800px) {
+        .keyboard-modal-content { transform: translate(-50%, -50%) scale(0.9); }
+    }
+
+    @media (max-width: 1600px) {
+        .keyboard-modal-content { transform: translate(-50%, -50%) scale(0.8); }
+        .keyboard-container { gap: 18px; padding: 18px; }
+    }
+
     @media (max-width: 1400px) {
-        .key { --key-size: 40px; }
-        .keyboard-container { gap: 20px; }
-        .mouse-buttons { gap: 100px; }
+        .keyboard-modal-content { transform: translate(-50%, -50%) scale(0.7) !important; }
+        .keyboard-container { gap: 16px; padding: 16px; }
     }
 
     @media (max-width: 1200px) {
-        .key { 
-            --key-size: 35px;
-            border-radius: 6px;
-            font-size: calc(var(--key-size) * 0.35);
-        }
-        .keyboard-container { gap: 15px; }
-        .mouse-buttons { gap: 80px; }
-        .f-keys-group + .f-keys-group { margin-left: 15px; }
+        .keyboard-modal-content { transform: translate(-50%, -50%) scale(0.6) !important; }
+        .keyboard-container { gap: 14px; padding: 14px; }
     }
 
     @media (max-width: 1000px) {
-        .key { 
-            --key-size: 30px;
-            padding: 4px;
-            margin: 1px;
-            font-size: calc(var(--key-size) * 0.4);
-        }
-        .keyboard-container { 
-            gap: 10px;
-            padding: 15px;
-        }
-        .mouse-buttons { 
-            gap: 60px;
-            padding: 15px;
-        }
-        .f-keys-group + .f-keys-group { margin-left: 10px; }
-        .navigation-section { margin-left: 10px; }
-        .numpad { margin-left: 10px; }
-        
-        .mouse-key {
-            min-width: calc(var(--key-size) * 1.3);
-            font-size: calc(var(--key-size) * 0.35);
-        }
+        .keyboard-modal-content { transform: translate(-50%, -50%) scale(0.5) !important; }
+        .keyboard-container { gap: 12px; padding: 12px; }
     }
 
     @media (max-width: 800px) {
-        .keyboard-modal-content {
-            transform: translate(-50%, -50%) scale(0.9);
-            padding: 15px;
-        }
-        
-        .key { 
-            --key-size: 25px;
-            padding: 2px;
-            margin: 1px;
-            border-radius: 3px;
-            font-size: calc(var(--key-size) * 0.45);
-        }
-        
-        .keyboard-container { 
-            gap: 8px;
-            padding: 10px;
-        }
-        
-        .mouse-buttons { 
-            gap: 40px;
-            padding: 10px;
-        }
-        
-        .f-keys-group + .f-keys-group { margin-left: 8px; }
-        .navigation-section { margin-left: 8px; }
-        .numpad { margin-left: 8px; }
-        
-        .section-title {
-            font-size: 14px;
-            margin-bottom: 5px;
-        }
-        
-        .control-buttons {
-            padding: 10px;
-        }
-        
-        .btn {
-            padding: 8px 16px;
-            font-size: 12px;
-            min-width: 80px;
+        .keyboard-modal-content { transform: translate(-50%, -50%) scale(0.4) !important; }
+        .keyboard-container { gap: 10px; padding: 10px; }
+        .f-keys-group + .f-keys-group { margin-left: 20px; }
+        .navigation-section, .numpad { margin-left: 20px; }
+    }
+
+    @media (max-width: 600px) {
+        .keyboard-modal-content { transform: translate(-50%, -50%) scale(0.35) !important; }
+        .keyboard-container { gap: 8px; padding: 8px; }
+        .f-keys-group + .f-keys-group { margin-left: 15px; }
+        .navigation-section, .numpad { margin-left: 15px; }
+    }
+
+    /* Отступы контейнера */
+    @media screen and (max-width: 1600px) {
+        .keyboard-container {
+            gap: 18px;
+            padding: 18px;
         }
     }
 
-    /* Добавляем новый брейкпоинт для очень маленьких экранов */
-    @media (max-width: 720px) {
-        .keyboard-modal-content {
-            transform: translate(-50%, -50%) scale(0.8);
+    @media screen and (max-width: 1400px) {
+        .keyboard-container {
+            gap: 16px;
+            padding: 16px;
         }
-        
-        .key { 
-            --key-size: 22px;
-            font-size: calc(var(--key-size) * 0.5);
+    }
+
+    @media screen and (max-width: 1200px) {
+        .keyboard-container {
+            gap: 14px;
+            padding: 14px;
         }
-        
-        .keyboard-container { 
-            gap: 5px;
+    }
+
+    @media screen and (max-width: 1000px) {
+        .keyboard-container {
+            gap: 12px;
+            padding: 12px;
+        }
+    }
+
+    @media screen and (max-width: 800px) {
+        .keyboard-container {
+            gap: 10px;
+            padding: 10px;
+        }
+        .f-keys-group + .f-keys-group {
+            margin-left: 20px;
+        }
+        .navigation-section, .numpad {
+            margin-left: 20px;
+        }
+    }
+
+    @media screen and (max-width: 600px) {
+        .keyboard-container {
+            gap: 8px;
             padding: 8px;
         }
-        
-        .mouse-buttons { 
-            gap: 30px;
-            padding: 8px;
+        .f-keys-group + .f-keys-group {
+            margin-left: 15px;
         }
-        
-        .mouse-key {
-            min-width: calc(var(--key-size) * 1.2);
+        .navigation-section, .numpad {
+            margin-left: 15px;
         }
-        
-        .f-keys-group + .f-keys-group { margin-left: 5px; }
-        .navigation-section { margin-left: 5px; }
-        .numpad { margin-left: 5px; }
     }
 
     /* Control buttons */
@@ -711,5 +735,36 @@
     .light-theme .mouse-key.active {
         background: linear-gradient(145deg, #4A9EFF, #3d84d5);
         color: #fff;
+    }
+
+    /* Медиа-запросы для масштабирования всего модуля */
+    @media (max-width: 1400px) {
+        .keyboard-modal-content {
+            transform: translate(-50%, -50%) scale(0.9);
+        }
+    }
+
+    @media (max-width: 1200px) {
+        .keyboard-modal-content {
+            transform: translate(-50%, -50%) scale(0.8);
+        }
+    }
+
+    @media (max-width: 1000px) {
+        .keyboard-modal-content {
+            transform: translate(-50%, -50%) scale(0.7);
+        }
+    }
+
+    @media (max-width: 800px) {
+        .keyboard-modal-content {
+            transform: translate(-50%, -50%) scale(0.6);
+        }
+    }
+
+    @media (max-width: 600px) {
+        .keyboard-modal-content {
+            transform: translate(-50%, -50%) scale(0.5);
+        }
     }
 </style> 

@@ -1779,9 +1779,48 @@
         .light-theme .checkbox-wrapper label {
             display: none;
         }
+
+        /* Добавляем стили для версии */
+        .version-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #4A9EFF;
+            font-weight: 600;
+            font-size: 1.2em;
+            padding: 8px 15px;
+            background: rgba(40, 40, 40, 0.6);
+            border-radius: 8px;
+            border: 1px solid rgba(74, 158, 255, 0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .version-info .author {
+            font-size: 0.7em;
+            color: rgba(255, 255, 255, 0.7);
+            font-weight: 400;
+        }
+
+        .light-theme .version-info {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(74, 158, 255, 0.3);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .light-theme .version-info .author {
+            color: rgba(0, 0, 0, 0.6);
+        }
     </style>
 </head>
 <body>
+    <div class="version-info">
+        <span>v2.1.3</span>
+        <span class="author">by wyrtensi</span>
+    </div>
     <div class="container">
         <h1>Sound Device Control App</h1>
         
