@@ -163,9 +163,57 @@ class VirtualKeyboard {
     }
 }
 
+// Функция для получения имени файла из полного пути
+function getFileName(path) {
+    if (!path) return '';
+    // Заменяем обратные слеши на прямые для единообразия
+    const normalizedPath = path.replace(/\\/g, '/');
+    // Получаем последний элемент пути
+    return normalizedPath.split('/').pop();
+}
+
+// Функция для активации профиля
+async function activateProfile(profileName) {
+    try {
+        const response = await fetch('/activate_profile', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ profile_name: profileName })
+        });
+        const data = await response.json();
+        return data.status === 'success';
+    } catch (error) {
+        console.error('Error activating profile:', error);
+        return false;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Инициализируем виртуальную клавиатуру
     const virtualKeyboard = new VirtualKeyboard();
+
+    // Добавляем обработчик для кнопки выбора приложения
+    document.getElementById('selectTriggerAppBtn').addEventListener('click', async function(e) {
+        e.preventDefault();
+        try {
+            const response = await fetch('/select_app');
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                document.getElementById('trigger-app-path').textContent = data.path;
+            }
+        } catch (error) {
+            console.error('Error selecting app:', error);
+        }
+    });
+
+    // Добавляем обработчик для кнопки очистки пути приложения
+    document.getElementById('clearTriggerAppBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        document.getElementById('trigger-app-path').textContent = 'No application selected';
+    });
 
     // Функция для инициализации обработчиков виртуальной клавиатуры
     function initVirtualKeyboardHandlers(element = document) {
@@ -189,9 +237,9 @@ document.addEventListener('DOMContentLoaded', function() {
         mutations.forEach((mutation) => {
             if (mutation.addedNodes.length) {
                 mutation.addedNodes.forEach((node) => {
-                    if (node.nodeType === 1) { // Проверяем, что это HTML элемент
+                    if (node.nodeType === 1) { // Проверяем, то это HTML элемент
                         initVirtualKeyboardHandlers(node);
-                        // Также проверяем, не является ли node контейнером для нашего поля
+                        // Также проверяем, не является ли node контейнеро�� для нашего поля
                         if (node.querySelector) {
                             initVirtualKeyboardHandlers(node);
                         }
@@ -555,4 +603,54 @@ document.addEventListener('DOMContentLoaded', function() {
     // Запускаем периодическое обновление списка устройств
     updateDeviceList();
     setInterval(updateDeviceList, 2000);
+
+    // Добавляем обработчик для активации профиля
+    document.querySelectorAll('.profile-item').forEach(profileItem => {
+        const profileName = profileItem.getAttribute('data-profile-name');
+        const hotkeyInput = profileItem.querySelector('.profile-hotkey-input');
+        
+        if (hotkeyInput) {
+            const keyboard = hotkeyInput.getAttribute('data-keyboard');
+            const mouse = hotkeyInput.getAttribute('data-mouse');
+            
+            if (keyboard !== 'None' || mouse !== 'None') {
+                // Добавляем горячую клавишу в список активных
+                const hotkey = {
+                    keyboard: keyboard || 'None',
+                    mouse: mouse || 'None'
+                };
+                
+                // При совпадении горячей клавиши активируем профиль
+                document.addEventListener('keydown', async function(e) {
+                    if (checkHotkeyMatch(e, hotkey)) {
+                        e.preventDefault();
+                        await activateProfile(profileName);
+                    }
+                });
+            }
+        }
+    });
 });
+
+// Функция для проверки совпадения горячих клавиш
+function checkHotkeyMatch(event, hotkey) {
+    const pressedKeys = new Set();
+    
+    if (event.ctrlKey) pressedKeys.add('ctrl');
+    if (event.altKey) pressedKeys.add('alt');
+    if (event.shiftKey) pressedKeys.add('shift');
+    if (event.metaKey) pressedKeys.add('win');
+    
+    // Добавляем нажатую клавишу
+    if (event.key) {
+        pressedKeys.add(event.key.toLowerCase());
+    }
+    
+    // Получаем горячие клавиши профиля
+    const profileKeys = hotkey.keyboard.toLowerCase().split('+').filter(k => k !== 'none');
+    
+    // Проверяем совпадение количества и состава клавиш
+    if (pressedKeys.size !== profileKeys.length) return false;
+    
+    return profileKeys.every(key => pressedKeys.has(key));
+}
