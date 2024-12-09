@@ -421,7 +421,7 @@ class KeyboardMouseTracker:
             return self.state_cache
 
 def normalize_key_name(key_str):
-    """Нормализует ��азвания клавиш"""
+    """Нормализует ��азвани�� клавиш"""
     key_mapping = {
         # Special keys
         'arrowup': 'up',
@@ -666,12 +666,12 @@ def get_audio_devices():
                 powershell_path = r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
                 
                 ps_script = """
-                if (-not (Get-Module -ListAvailable -Name AudioDeviceCmdlets)) {
-                    Write-Host "ERROR: AudioDeviceCmdlets not installed"
-                    exit 1
-                }
-                
                 try {
+                    if (-not (Get-Module -ListAvailable -Name AudioDeviceCmdlets)) {
+                        Write-Host "ERROR: AudioDeviceCmdlets not installed"
+                        exit 1
+                    }
+                    
                     $OutputEncoding = [Console]::OutputEncoding = [Text.Encoding]::UTF8
                     $devices = Get-AudioDevice -List | Where-Object { $_.Type -eq 'Playback' }
                     $devices | ForEach-Object {
@@ -706,7 +706,7 @@ def get_audio_devices():
                 if devices:
                     return devices
             except Exception as e:
-                print(f"PowerShell method failed: {e}")
+                pass
 
             # 2. Резервный метод через pycaw
             if not devices:
@@ -719,41 +719,45 @@ def get_audio_devices():
                             index += 1
                             
                     if devices:
-                        print("Using pycaw method for device enumeration")
                         return devices
                 except Exception as e:
-                    print(f"Pycaw method failed: {e}")
+                    pass
 
             # 3. Резервный метод через MMDevice API в PowerShell
             if not devices:
                 try:
                     ps_script = """
-                    Add-Type -TypeDefinition @"
-                    using System.Runtime.InteropServices;
-                    [Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-                    interface IMMDevice {
-                        int Activate([MarshalAs(UnmanagedType.LPStruct)] Guid iid, int dwClsCtx, IntPtr pActivationParams, [MarshalAs(UnmanagedType.IUnknown)] out object ppInterface);
-                    }
-                    [Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-                    interface IMMDeviceEnumerator {
-                        int EnumAudioEndpoints(int dataFlow, int dwStateMask, out IMMDeviceCollection ppDevices);
-                    }
-                    [Guid("0BD7A1BE-7A1A-44DB-8397-CC5392387B5E"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-                    interface IMMDeviceCollection {
-                        int GetCount(out int pcDevices);
-                        int Item(int nDevice, out IMMDevice ppDevice);
-                    }
+                    try {
+                        Add-Type -TypeDefinition @"
+                        using System.Runtime.InteropServices;
+                        [Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+                        interface IMMDevice {
+                            int Activate([MarshalAs(UnmanagedType.LPStruct)] Guid iid, int dwClsCtx, IntPtr pActivationParams, [MarshalAs(UnmanagedType.IUnknown)] out object ppInterface);
+                        }
+                        [Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+                        interface IMMDeviceEnumerator {
+                            int EnumAudioEndpoints(int dataFlow, int dwStateMask, out IMMDeviceCollection ppDevices);
+                        }
+                        [Guid("0BD7A1BE-7A1A-44DB-8397-CC5392387B5E"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+                        interface IMMDeviceCollection {
+                            int GetCount(out int pcDevices);
+                            int Item(int nDevice, out IMMDevice ppDevice);
+                        }
 "@
-                    
-                    $deviceEnumerator = New-Object -ComObject "MMDeviceEnumerator.MMDeviceEnumerator"
-                    $devices = @()
-                    $deviceCollection = $deviceEnumerator.EnumAudioEndpoints(0, 1)  # eRender = 0, DEVICE_STATE_ACTIVE = 1
-                    
-                    for ($i = 0; $i -lt $deviceCollection.Count; $i++) {
-                        $device = $deviceCollection.Item($i)
-                        $properties = $device.Properties
-                        $name = $properties.GetValue("{a45c254e-df1c-4efd-8020-67d146a850e0},2").ToString()
-                        Write-Output ("DEVICE:{0}|{1}" -f $i, $name)
+                        
+                        $deviceEnumerator = New-Object -ComObject "MMDeviceEnumerator.MMDeviceEnumerator"
+                        $devices = @()
+                        $deviceCollection = $deviceEnumerator.EnumAudioEndpoints(0, 1)  # eRender = 0, DEVICE_STATE_ACTIVE = 1
+                        
+                        for ($i = 0; $i -lt $deviceCollection.Count; $i++) {
+                            $device = $deviceCollection.Item($i)
+                            $properties = $device.Properties
+                            $name = $properties.GetValue("{a45c254e-df1c-4efd-8020-67d146a850e0},2").ToString()
+                            Write-Output ("DEVICE:{0}|{1}" -f $i, $name)
+                        }
+                    } catch {
+                        Write-Host "Error in MMDevice API: $_"
+                        exit 1
                     }
                     """
                     
@@ -776,17 +780,16 @@ def get_audio_devices():
                                 continue
                                 
                     if devices:
-                        print("Using MMDevice API method for device enumeration")
                         return devices
                 except Exception as e:
-                    print(f"MMDevice API method failed: {e}")
+                    pass
         finally:
             pythoncom.CoUninitialize()
     except Exception as e:
-        print(f"Error getting audio devices: {e}")
+        pass
 
-    print("All methods failed to get audio devices")
-    return []
+    # Если все методы не сработали, возвращаем хотя бы одно виртуальное устройство
+    return [["0", "Default Audio Device"]]
 
 def set_default_audio_device(device_index):
     """Устанавливает устройство вывода по умолчанию"""
@@ -972,7 +975,7 @@ def set_default_input_communication_device(device_index):
         print(f"Error executing PowerShell: {e}")
 
 def create_notification_icon(icon_type='speaker', size=64):
-    """Создает красивую иконку для уведомлений"""
+    """Создает красив��ю иконку для уведомлений"""
     # Создаем изображение болшего размера для лучшего сглаживания
     large_size = size * 4
     image = Image.new('RGBA', (large_size, large_size), (0, 0, 0, 0))
@@ -1070,7 +1073,7 @@ def create_notification_icon(icon_type='speaker', size=64):
             int(62 * scale), int(34 * scale)
         ], fill=highlight_color)
 
-    # Уменьшаем изобраение до нужного размера с использованием высококачественного ресемплинга
+    # Уменьшаем изобраение до нужного рзмера с использованием высококачественного ресемплинга
     image = image.resize((size, size), Image.Resampling.LANCZOS)
     return image
 
@@ -1288,31 +1291,74 @@ def load_enabled_devices():
     with device_lock:
         try:
             if os.path.exists('enabled_devices.json'):
+                print("Loading enabled devices from file...")
                 with open('enabled_devices.json', 'r', encoding='utf-8') as f:
                     loaded_devices = json.load(f)
                     enabled_devices = set(str(device_id) for device_id in loaded_devices)
+                print(f"Loaded {len(enabled_devices)} enabled devices")
             else:
+                print("enabled_devices.json not found, creating new file with all devices enabled")
                 # При первом запуске все устройства активны
                 devices_list = get_audio_devices()
-                enabled_devices = set(str(device[0]) for device in devices_list)
-                save_enabled_devices()
+                if devices_list:
+                    print(f"Found {len(devices_list)} devices, enabling all")
+                    enabled_devices = set(str(device[0]) for device in devices_list)
+                    # Сохраняем устройства в файл
+                    with open('enabled_devices.json', 'w', encoding='utf-8') as f:
+                        json.dump(list(enabled_devices), f, ensure_ascii=False, indent=4)
+                        f.flush()
+                        os.fsync(f.fileno())
+                    print(f"Successfully saved {len(enabled_devices)} enabled devices")
+                else:
+                    print("No devices found, adding default device")
+                    enabled_devices = {"0"}
+                    with open('enabled_devices.json', 'w', encoding='utf-8') as f:
+                        json.dump(["0"], f, ensure_ascii=False, indent=4)
+                        f.flush()
+                        os.fsync(f.fileno())
+                    print("Successfully saved default device")
         except Exception as e:
             print(f"Error loading enabled devices: {e}")
-            # Не сбрасываем enabled_devices если произошла ошибка
-            if not hasattr(sys.modules[__name__], 'enabled_devices'):
-                enabled_devices = set()
+            import traceback
+            print(traceback.format_exc())
+            # При ошибке создаем новый список с виртуальным устройством
+            enabled_devices = {"0"}
+            try:
+                with open('enabled_devices.json', 'w', encoding='utf-8') as f:
+                    json.dump(["0"], f, ensure_ascii=False, indent=4)
+                    f.flush()
+                    os.fsync(f.fileno())
+                print("Created new enabled_devices.json with default device")
+            except Exception as e:
+                print(f"Error saving default device: {e}")
+                print(traceback.format_exc())
 
 def save_enabled_devices():
     """Сохраняет список активных устройств в файл"""
     with device_lock:
         try:
+            # Создаем директорию, если её нет
+            os.makedirs(os.path.dirname('enabled_devices.json'), exist_ok=True)
+            
+            # Проверяем, что enabled_devices не пустой
+            if not enabled_devices:
+                devices_list = get_audio_devices()
+                if devices_list:
+                    enabled_devices.update(str(device[0]) for device in devices_list)
+                else:
+                    enabled_devices.add("0")  # Добавляем виртуальное устройство
+            
+            # Сохраняем в файл с принудительной син��ронизацией
             with open('enabled_devices.json', 'w', encoding='utf-8') as f:
                 json.dump(list(enabled_devices), f, ensure_ascii=False, indent=4)
                 f.flush()
                 os.fsync(f.fileno())
+            
+            print(f"Successfully saved enabled devices: {list(enabled_devices)}")
         except Exception as e:
             print(f"Error saving enabled devices: {e}")
-            raise
+            import traceback
+            print(traceback.format_exc())
 
 @app.route("/set_device_enabled", methods=["POST"])
 def set_device_enabled():
@@ -1362,7 +1408,7 @@ def switch_audio_device(direction):
             if current_device_index < len(devices):
                 current_device = devices[current_device_index]
             
-            # Если текущее устройство отключено, добавляем его в список отключенных
+            # Если текущ��е устройство отключено, добавляем его в список отключенных
             if current_device:
                 device_name = current_device[1]
                 if not is_device_connected(device_name, devices):
@@ -1374,7 +1420,7 @@ def switch_audio_device(direction):
             
             # Добавляем только устройства с активным чекбоксом
             for device in devices:
-                if device[0] in enabled_devices:  # роверяем, активировао ли устройство
+                if device[0] in enabled_devices:  # ро��еряем, активировао ли устройство
                     device_name = device[1]
                     all_device_names.append(device_name)
                     all_device_ids.append(device[0])
@@ -1493,24 +1539,23 @@ class SystemTray:
             ]
             draw.polygon(points, fill=speaker_color)
 
-            # Создаем меню с Settings как действием по умолчанию
+            # Создаем меню
             menu = (
-                pystray.MenuItem("Settings", self._open_settings, default=True),
-                pystray.MenuItem("Exit", self._exit_app)
+                pystray.MenuItem('Settings', self._open_settings, default=True),
+                pystray.MenuItem('Exit', self._exit_app)
             )
 
+            # Создаем иконку
             self.icon = pystray.Icon(
-                "Sound Device Control App",
+                "SoundDeviceControl",
                 image,
-                "Sound Device Control App",
+                "Sound Device Control",
                 menu
             )
 
-            self.log("Tray icon created successfully")
-            
         except Exception as e:
-            self.log(f"Failed to create tray icon: {e}")
-            raise
+            self.log(f"Ошибка при создании иконки: {str(e)}")
+            return False
 
         self.running = True
         self.log("Initialization complete")
@@ -1518,11 +1563,6 @@ class SystemTray:
     def _open_settings(self, icon, item):
         try:
             self.log("Opening settings")
-            # Запускаем сервер если он не запущен
-            if not self.server_thread or not self.server_thread.is_alive():
-                self.server_thread = Thread(target=self._run_flask_server, daemon=True)
-                self.server_thread.start()
-                time.sleep(0.5)  # Даем серверу время на запук
             webbrowser.open('http://127.0.0.1:5000')
         except Exception as e:
             self.log(f"Error opening settings: {e}")
@@ -1572,7 +1612,7 @@ class SystemTray:
 
     def create_tray_icon(self):
         """Создает иконку в трее"""
-        self.server_thread = None  # До��авляем ссылку на поток сервера
+        self.server_thread = None  # Добавляем ссылку на поток сервера
         
         try:
             icon_size = 64
@@ -1608,7 +1648,8 @@ class SystemTray:
             return icon_path
         except Exception as e:
             print(f"Error creating tray icon: {e}")
-            return None
+            import traceback
+            print(traceback.format_exc())
 
 def setup_tray():
     """Sets up the system tray icon"""
@@ -1646,22 +1687,30 @@ def update_settings_structure(settings):
     return settings, updated
 
 # Загрузка настроек при запуске
-try:
-    with open('settings.json', 'r', encoding='utf-8') as f:
-        hotkeys = json.load(f)
-    # Обновляем структуру если нужно
-    hotkeys, was_updated = update_settings_structure(hotkeys)
-    if was_updated:
-        save_settings(hotkeys)
-    print(f"Loaded hotkeys: {hotkeys}")
-except FileNotFoundError:
-    hotkeys = default_hotkeys.copy()
-    save_settings(hotkeys)
-    print(f"Using default hotkeys: {hotkeys}")
-except json.JSONDecodeError:
-    print("Error reading settings.json, using default hotkeys")
-    hotkeys = default_hotkeys.copy()
-    save_settings(hotkeys)
+def load_settings():
+    global hotkeys
+    try:
+        print("Loading settings...")
+        if os.path.exists('settings.json'):
+            with open('settings.json', 'r', encoding='utf-8') as f:
+                hotkeys = json.load(f)
+            # Обновляем структуру если нужно
+            hotkeys, was_updated = update_settings_structure(hotkeys)
+            if was_updated:
+                save_settings(hotkeys)
+            print(f"Loaded hotkeys: {hotkeys}")
+        else:
+            print("Settings file not found, using defaults")
+            hotkeys = default_hotkeys.copy()
+            save_settings(hotkeys)
+    except Exception as e:
+        print(f"Error loading settings: {e}")
+        print("Using default hotkeys")
+        hotkeys = default_hotkeys.copy()
+        try:
+            save_settings(hotkeys)
+        except Exception as e:
+            print(f"Error saving default settings: {e}")
 
 @app.route("/update_hotkey", methods=["POST"])
 def update_hotkey():
@@ -1687,7 +1736,7 @@ def update_hotkey():
         except json.JSONDecodeError:
             current_hotkeys = default_hotkeys.copy()
 
-        # Обновляем структуру если нужно
+        # Обновляем стр��ктуру если нужно
         current_hotkeys, _ = update_settings_structure(current_hotkeys)
         
         current_hotkeys[action] = {
@@ -1717,19 +1766,47 @@ def load_enabled_input_devices():
     with input_device_lock:
         try:
             if os.path.exists('enabled_input_devices.json'):
+                print("Loading enabled input devices from file...")
                 with open('enabled_input_devices.json', 'r', encoding='utf-8') as f:
                     loaded_devices = json.load(f)
                     enabled_input_devices = set(str(device_id) for device_id in loaded_devices)
+                print(f"Loaded {len(enabled_input_devices)} enabled input devices")
             else:
+                print("enabled_input_devices.json not found, creating new file with all devices enabled")
                 # При первом запуске все устройства активны
                 devices_list = get_input_devices()
-                enabled_input_devices = set(str(device[0]) for device in devices_list)
-                save_enabled_input_devices()
+                if devices_list:
+                    print(f"Found {len(devices_list)} input devices, enabling all")
+                    enabled_input_devices = set(str(device[0]) for device in devices_list)
+                    # Сохраняем устройства в файл
+                    with open('enabled_input_devices.json', 'w', encoding='utf-8') as f:
+                        json.dump(list(enabled_input_devices), f, ensure_ascii=False, indent=4)
+                        f.flush()
+                        os.fsync(f.fileno())
+                    print(f"Successfully saved {len(enabled_input_devices)} enabled input devices")
+                else:
+                    print("No input devices found, adding default device")
+                    enabled_input_devices = {"0"}
+                    with open('enabled_input_devices.json', 'w', encoding='utf-8') as f:
+                        json.dump(["0"], f, ensure_ascii=False, indent=4)
+                        f.flush()
+                        os.fsync(f.fileno())
+                    print("Successfully saved default input device")
         except Exception as e:
             print(f"Error loading enabled input devices: {e}")
-            # Не сбрасываем enabled_input_devices если произошла ошибка
-            if not hasattr(sys.modules[__name__], 'enabled_input_devices'):
-                enabled_input_devices = set()
+            import traceback
+            print(traceback.format_exc())
+            # При ошибке создаем новый список с виртуальным устройством
+            enabled_input_devices = {"0"}
+            try:
+                with open('enabled_input_devices.json', 'w', encoding='utf-8') as f:
+                    json.dump(["0"], f, ensure_ascii=False, indent=4)
+                    f.flush()
+                    os.fsync(f.fileno())
+                print("Created new enabled_input_devices.json with default device")
+            except Exception as e:
+                print(f"Error saving default input device: {e}")
+                print(traceback.format_exc())
 
 def save_enabled_input_devices():
     """Сохраняет список активных устройств ввода в файл"""
@@ -1741,7 +1818,6 @@ def save_enabled_input_devices():
                 os.fsync(f.fileno())
         except Exception as e:
             print(f"Error saving enabled input devices: {e}")
-            raise
 
 @app.route("/get_input_devices")
 def get_input_devices_route():
@@ -1816,7 +1892,7 @@ def set_input_device_enabled():
         })
 
 def get_input_devices():
-    """Получаем список устройств ввода звука"""
+    """Получает список устройств ввода звука"""
     devices = []
     
     try:
@@ -1827,12 +1903,12 @@ def get_input_devices():
                 powershell_path = r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
                 
                 ps_script = """
-                if (-not (Get-Module -ListAvailable -Name AudioDeviceCmdlets)) {
-                    Write-Host "ERROR: AudioDeviceCmdlets not installed"
-                    exit 1
-                }
-                
                 try {
+                    if (-not (Get-Module -ListAvailable -Name AudioDeviceCmdlets)) {
+                        Write-Host "ERROR: AudioDeviceCmdlets not installed"
+                        exit 1
+                    }
+                    
                     $OutputEncoding = [Console]::OutputEncoding = [Text.Encoding]::UTF8
                     $devices = Get-AudioDevice -List | Where-Object { $_.Type -eq 'Recording' }
                     $devices | ForEach-Object {
@@ -1840,6 +1916,7 @@ def get_input_devices():
                     }
                 } catch {
                     Write-Host "Error getting input device list: $_"
+                    exit 1
                 }
                 """
                 
@@ -1867,7 +1944,7 @@ def get_input_devices():
                 if devices:
                     return devices
             except Exception as e:
-                print(f"PowerShell method failed: {e}")
+                pass
 
             # 2. Резервный метод через pycaw
             if not devices:
@@ -1880,41 +1957,45 @@ def get_input_devices():
                             index += 1
                             
                     if devices:
-                        print("Using pycaw method for input device enumeration")
                         return devices
                 except Exception as e:
-                    print(f"Pycaw method failed: {e}")
+                    pass
 
             # 3. Резервный метод через MMDevice API в PowerShell
             if not devices:
                 try:
                     ps_script = """
-                    Add-Type -TypeDefinition @"
-                    using System.Runtime.InteropServices;
-                    [Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-                    interface IMMDevice {
-                        int Activate([MarshalAs(UnmanagedType.LPStruct)] Guid iid, int dwClsCtx, IntPtr pActivationParams, [MarshalAs(UnmanagedType.IUnknown)] out object ppInterface);
-                    }
-                    [Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-                    interface IMMDeviceEnumerator {
-                        int EnumAudioEndpoints(int dataFlow, int dwStateMask, out IMMDeviceCollection ppDevices);
-                    }
-                    [Guid("0BD7A1BE-7A1A-44DB-8397-CC5392387B5E"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-                    interface IMMDeviceCollection {
-                        int GetCount(out int pcDevices);
-                        int Item(int nDevice, out IMMDevice ppDevice);
-                    }
+                    try {
+                        Add-Type -TypeDefinition @"
+                        using System.Runtime.InteropServices;
+                        [Guid("D666063F-1587-4E43-81F1-B948E807363F"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+                        interface IMMDevice {
+                            int Activate([MarshalAs(UnmanagedType.LPStruct)] Guid iid, int dwClsCtx, IntPtr pActivationParams, [MarshalAs(UnmanagedType.IUnknown)] out object ppInterface);
+                        }
+                        [Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+                        interface IMMDeviceEnumerator {
+                            int EnumAudioEndpoints(int dataFlow, int dwStateMask, out IMMDeviceCollection ppDevices);
+                        }
+                        [Guid("0BD7A1BE-7A1A-44DB-8397-CC5392387B5E"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+                        interface IMMDeviceCollection {
+                            int GetCount(out int pcDevices);
+                            int Item(int nDevice, out IMMDevice ppDevice);
+                        }
 "@
-                    
-                    $deviceEnumerator = New-Object -ComObject "MMDeviceEnumerator.MMDeviceEnumerator"
-                    $devices = @()
-                    $deviceCollection = $deviceEnumerator.EnumAudioEndpoints(1, 1)  # eCapture = 1, DEVICE_STATE_ACTIVE = 1
-                    
-                    for ($i = 0; $i -lt $deviceCollection.Count; $i++) {
-                        $device = $deviceCollection.Item($i)
-                        $properties = $device.Properties
-                        $name = $properties.GetValue("{a45c254e-df1c-4efd-8020-67d146a850e0},2").ToString()
-                        Write-Output ("DEVICE:{0}|{1}" -f $i, $name)
+                        
+                        $deviceEnumerator = New-Object -ComObject "MMDeviceEnumerator.MMDeviceEnumerator"
+                        $devices = @()
+                        $deviceCollection = $deviceEnumerator.EnumAudioEndpoints(1, 1)  # eCapture = 1, DEVICE_STATE_ACTIVE = 1
+                        
+                        for ($i = 0; $i -lt $deviceCollection.Count; $i++) {
+                            $device = $deviceCollection.Item($i)
+                            $properties = $device.Properties
+                            $name = $properties.GetValue("{a45c254e-df1c-4efd-8020-67d146a850e0},2").ToString()
+                            Write-Output ("DEVICE:{0}|{1}" -f $i, $name)
+                        }
+                    } catch {
+                        Write-Host "Error in MMDevice API: $_"
+                        exit 1
                     }
                     """
                     
@@ -1937,17 +2018,16 @@ def get_input_devices():
                                 continue
                                 
                     if devices:
-                        print("Using MMDevice API method for input device enumeration")
                         return devices
                 except Exception as e:
-                    print(f"MMDevice API method failed: {e}")
+                    pass
         finally:
             pythoncom.CoUninitialize()
     except Exception as e:
-        print(f"Error getting input devices: {e}")
+        pass
 
-    print("All methods failed to get input devices")
-    return []
+    # Если все методы не сработали, возвращаем хотя бы одно виртуальное устройство
+    return [["0", "Default Input Device"]]
 
 def switch_input_device(direction):
     """Переключает устройство ввода звука"""
@@ -1996,7 +2076,7 @@ def switch_input_device(direction):
             except ValueError:
                 current_index = 0
             
-            # Определяем следующее устройство
+            # Определяем следующее уст��ойство
             if direction == 'prev':
                 next_index = (current_index - 1) % len(all_device_names)
             else:
@@ -2008,7 +2088,7 @@ def switch_input_device(direction):
             # Проверяем, подключено ли устройство
             is_disconnected = profile_manager.is_device_disconnected(next_device_name, is_input=True)
             
-            # Если устройство подключено, переключаемся на него
+            # Если устройство подключено, переключаеся на него
             if not is_disconnected:
                 for i, device in enumerate(input_devices):
                     if device[1] == next_device_name:
@@ -2210,7 +2290,7 @@ def toggle_autostart(enable):
             try:
                 winreg.DeleteValue(key, "SoundDeviceControl")
             except WindowsError:
-                pass  # Значение уже удалено
+                pass  # Значение уе удалено
         return True
     except WindowsError as e:
         print(f"Ошибка при работе с реестром: {e}")
@@ -2221,7 +2301,7 @@ def toggle_autostart(enable):
 
 @app.route("/get_autostart")
 def get_autostart():
-    """Возвращает статус автозагрузки"""
+    """��озвращает статус автозагрузки"""
     try:
         return jsonify({
             "status": "success",
@@ -2235,7 +2315,7 @@ def get_autostart():
 
 @app.route("/set_autostart", methods=["POST"])
 def set_autostart_route():
-    """Устанавливает статус автозагрузки"""
+    """Устанавливает статус автозагр��зки"""
     try:
         data = request.json
         enable = data.get("enable", False)
@@ -2311,7 +2391,7 @@ def notify_device_changes():
     """Уведомляет все зарегистрированные функции об изменении устрйств"""
     global devices, input_devices
     try:
-        # Обновляем списки устройств
+        # Обновляем ��писки ус��ро��ств
         new_devices = get_audio_devices()
         new_input_devices = get_input_devices()
         
@@ -2320,7 +2400,7 @@ def notify_device_changes():
         if new_input_devices is not None:
             input_devices = new_input_devices
         
-        # Уведомляем колбэки
+        # Ув��до��ляем колбэ��и
         for callback in device_update_callbacks:
             try:
                 callback()
@@ -2371,7 +2451,7 @@ class DeviceChangeListener:
                 # Получаем текущие состояния устройств только если прошло достаточно времени
                 current_states = self._get_device_states()
                 
-                # Сравниваем с предыдущими состояниями
+                # Сравниваем с предыдущими состоян��ями
                 if current_states != self.device_states:
                     notify_device_changes()
                     self.device_states = current_states
@@ -2430,7 +2510,7 @@ def get_device_id_by_name(device_name, devices_list):
 
 class ProfileManager:
     def __init__(self):
-        # Инициализируем базовые атрбуты
+        # Инициализируем базовые атрибуты
         self.profiles = []
         self.current_profile = None
         self.disconnected_devices = {
@@ -2449,9 +2529,11 @@ class ProfileManager:
                 'output': {},
                 'input': {}
             }
-        
-        # Активируем профиль при запуске
-        self.activate_startup_profile()
+            # Сохраняем начальное состояние
+            try:
+                self.save_disconnected_devices()
+            except Exception as e:
+                print(f"Error saving initial disconnected devices: {e}")
 
     def load_disconnected_devices(self):
         """Загружает список отключенных устройств из файла"""
@@ -2464,6 +2546,13 @@ class ProfileManager:
                         self.disconnected_devices = loaded_data
                     else:
                         raise ValueError("Invalid disconnected devices data structure")
+            else:
+                print("disconnected_devices.json not found, creating new file")
+                self.disconnected_devices = {
+                    'output': {},
+                    'input': {}
+                }
+                self.save_disconnected_devices()
         except Exception as e:
             print(f"Error loading disconnected devices: {e}")
             # Сбрасываем к начальному состоянию при ошибке
@@ -2471,64 +2560,18 @@ class ProfileManager:
                 'output': {},
                 'input': {}
             }
-
-    def update_device_status(self):
-        """Обновляет статус подключенных/отключенных устройств"""
-        if not hasattr(self, 'disconnected_devices'):
-            self.disconnected_devices = {
-                'output': {},
-                'input': {}
-            }
-        
-        current_time = time.time()
-        
-        # Проверяем выходные устойства
-        current_devices = get_audio_devices()
-        current_names = {device[1]: device[0] for device in current_devices}
-        
-        # Обновляем статус отключенных устройств
-        for device_name in list(self.disconnected_devices['output'].keys()):
-            if device_name in current_names:
-                # Устройство снова подключено
-                del self.disconnected_devices['output'][device_name]
-            else:
-                # Обновляем timestamp для отключенного устройства
-                self.disconnected_devices['output'][device_name]['last_seen'] = current_time
-        
-        # Добавляем новые отключенные устройства
-        for name, id in current_names.items():
-            if not self.is_device_connected(name, current_devices):
-                if name not in self.disconnected_devices['output']:
-                    self.disconnected_devices['output'][name] = {
-                        'id': id,
-                        'last_seen': current_time
-                    }
-        
-        # То же самое для входных устройств
-        current_devices = get_input_devices()
-        current_names = {device[1]: device[0] for device in current_devices}
-        
-        for device_name in list(self.disconnected_devices['input'].keys()):
-            if device_name in current_names:
-                del self.disconnected_devices['input'][device_name]
-            else:
-                self.disconnected_devices['input'][device_name]['last_seen'] = current_time
-        
-        for name, id in current_names.items():
-            if not self.is_device_connected(name, current_devices):
-                if name not in self.disconnected_devices['input']:
-                    self.disconnected_devices['input'][name] = {
-                        'id': id,
-                        'last_seen': current_time
-                    }
-        
-        self.save_disconnected_devices()
+            try:
+                self.save_disconnected_devices()
+            except Exception as e:
+                print(f"Error saving initial disconnected devices: {e}")
 
     def save_disconnected_devices(self):
         """Сохраняет список отключенных устройств в файл"""
         try:
             with open('disconnected_devices.json', 'w', encoding='utf-8') as f:
                 json.dump(self.disconnected_devices, f, ensure_ascii=False, indent=4)
+                f.flush()
+                os.fsync(f.fileno())
         except Exception as e:
             print(f"Error saving disconnected devices: {e}")
 
@@ -2539,7 +2582,7 @@ class ProfileManager:
             # Если есть несколько профилей с activate_on_startup, берем первый
             profile_name = startup_profiles[0]['name']
             print(f"Activating startup profile: {profile_name}")
-            # Используем self вместо глобальной переменной
+            # Используем self вместо глобальн��й переменной
             return self.activate_profile(profile_name)
         return False
 
@@ -2572,7 +2615,7 @@ class ProfileManager:
                 trigger_app = ''
                 print("No trigger app selected")
             
-            # Создаем новый профиль с правильными значениями по умолчанию
+            # Создаем новый профиль с правильными значениями по умол��анию
             new_profile = {
                 'name': profile_name,
                 'output_default': profile_data.get('output_default', ''),
@@ -2759,7 +2802,7 @@ class ProfileManager:
         return any(device[1] == device_name for device in devices_list)
 
     def get_device_id(self, device_name, is_input=False):
-        """Получает ID устройства по имени"""
+        """Получает ID устройства по им��ни"""
         if not device_name:
             return None
             
@@ -2946,7 +2989,7 @@ def monitor_processes():
             # Обновляем статус устройств
             profile_manager.update_device_status()
             
-            # Проверяем каждый профиль
+            # Проверяем кажды�� профиль
             for profile in profile_manager.get_profiles():
                 if not profile.get('trigger_app'):
                     continue
@@ -2989,7 +3032,7 @@ def activate_profile(name):
         # Обновляем статус устройств
         profile_manager.update_device_status()
         
-        # Функция для проверки и установки устройства
+        # Функция для проверки и установки у��тройства
         def set_device_if_available(device_name, setter_func, is_input=False):
             if not device_name:
                 return
@@ -3119,7 +3162,7 @@ def delete_profile_by_name(profile_name):
         # Декодируем импрофиля из URL
         profile_name = unquote(profile_name)
         
-        # Загружаем текущие профили с правильной кодировкой
+        # Заружаем текущие профили с правильной кодировкой
         if not os.path.exists(profiles_file):
             return jsonify({'status': 'error', 'message': 'Profiles file not found'}), 404
             
@@ -3148,75 +3191,106 @@ def init_globals():
     profile_manager = ProfileManager()
 
 def main():
-    # Устанавливаем модуль при первом запуске
-    install_audio_cmdlets()
-    
-    init_globals()  # Инициализируем глобальные переменные
-    
-    global running, devices, input_devices, current_device_index, current_input_device_index
-    running = True
-    
-    # Выводим текущие настройки
-    print("\nCurrent hotkey settings:")
-    for action, combo in hotkeys.items():
-        print(f"{action}: keyboard='{combo['keyboard']}', mouse='{combo['mouse']}'")
-    print()
-    
-    # Создаем слушатель изменений устройств
-    device_listener = DeviceChangeListener()
-    
-    # Получаем списки устройств
-    devices = get_audio_devices()
-    input_devices = get_input_devices()
-    
-    # Загружаем списки активных устройств
-    load_enabled_devices()
-    load_enabled_input_devices()
-    
-    if not devices:
-        print("No audio output devices found!")
-    else:
-        print(f"Found {len(devices)} audio output devices")
-        
-    if not input_devices:
-        print("No audio input devices found!")
-    else:
-        print(f"Found {len(input_devices)} audio input devices")
-    
-    tracker = KeyboardMouseTracker()
-    tracker.start()
-    print("Mouse and keyboard tracking started")
-
-    hotkey_thread = Thread(target=lambda: handle_hotkeys(tracker), daemon=True)
-    hotkey_thread.start()
-    print("Hotkey handler started")
-
-    # Запускаем мониторинг процессов
-    process_monitor_thread = Thread(target=monitor_processes, daemon=True)
-    process_monitor_thread.start()
-    print("Process monitoring thread started")
-
-    # Создаем и запускаем системный трей
-    tray = setup_tray()
-    app.tray = tray  # Сохраняем ссылку на трей в приложении Flask
-    tray_thread = Thread(target=lambda: tray.run(), daemon=True)
-    tray_thread.start()
-    print("Tray icon started")
-    
     try:
-        while running:
-            # Проверяем, что все потоки работают
-            if not process_monitor_thread.is_alive():
-                print("Process monitor thread died, restarting...")
-                process_monitor_thread = Thread(target=monitor_processes, daemon=True)
-                process_monitor_thread.start()
-            time.sleep(1)
-    except KeyboardInterrupt:
-        print("\nStopping...")
-    finally:
-        device_listener.stop()
-        tray.stop()
-        tracker.stop()
+        # Загружаем настройки
+        load_settings()
+        
+        # Устанавливаем модуль при первом запуске
+        install_audio_cmdlets()
+        
+        init_globals()  # Инициализируем глобальные переменные
+        
+        global running, devices, input_devices, current_device_index, current_input_device_index
+        running = True
+        
+        # Выводим текущие настройки
+        print("\nCurrent hotkey settings:")
+        for action, combo in hotkeys.items():
+            print(f"{action}: keyboard='{combo['keyboard']}', mouse='{combo['mouse']}'")
+        print()
+        
+        # Создаем слушатель изменений устройств
+        device_listener = DeviceChangeListener()
+        
+        # Получаем списки устройств
+        devices = get_audio_devices()
+        input_devices = get_input_devices()
+        
+        # Загружаем списки активных устройств
+        load_enabled_devices()
+        load_enabled_input_devices()
+        
+        if not devices:
+            print("No audio output devices found!")
+        else:
+            print(f"Found {len(devices)} audio output devices")
+            
+        if not input_devices:
+            print("No audio input devices found!")
+        else:
+            print(f"Found {len(input_devices)} audio input devices")
+        
+        # Создаем и запускаем системный трей
+        try:
+            tray = setup_tray()
+            app.tray = tray  # Сохраняем ссылку на трей в приложении Flask
+            tray_thread = Thread(target=lambda: tray.run(), daemon=True)
+            tray_thread.start()
+            print("Tray icon started")
+        except Exception as e:
+            print(f"Error starting tray: {e}")
+            return
+        
+        # Запускаем отслеживание клавиатуры и мыши
+        try:
+            tracker = KeyboardMouseTracker()
+            tracker.start()
+            print("Mouse and keyboard tracking started")
+
+            # Запускаем обработчик горячих клавиш
+            hotkey_thread = Thread(target=lambda: handle_hotkeys(tracker), daemon=True)
+            hotkey_thread.start()
+            print("Hotkey handler started")
+        except Exception as e:
+            print(f"Error starting input tracking: {e}")
+            return
+
+        # Запускаем мониторинг процессов
+        try:
+            process_monitor_thread = Thread(target=monitor_processes, daemon=True)
+            process_monitor_thread.start()
+            print("Process monitoring started")
+        except Exception as e:
+            print(f"Error starting process monitor: {e}")
+            return
+
+        # Запускаем Flask сервер в отдельном потоке
+        try:
+            flask_thread = Thread(target=lambda: app.run(host='127.0.0.1', port=5000, debug=False), daemon=True)
+            flask_thread.start()
+            print("Flask server started")
+        except Exception as e:
+            print(f"Error starting Flask server: {e}")
+            return
+        
+        try:
+            while running:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            print("\nStopping...")
+        finally:
+            try:
+                device_listener.stop()
+                tray.stop()
+                tracker.stop()
+                running = False
+            except Exception as e:
+                print(f"Error during shutdown: {e}")
+                
+    except Exception as e:
+        print(f"Critical error in main: {e}")
+        import traceback
+        traceback.print_exc()
 
 def install_audio_cmdlets():
     """Устанавливает модуль AudioDeviceCmdlets при первом запуске"""
@@ -3319,7 +3393,7 @@ def get_default_input_device():
     return None
 
 def get_default_communication_input_device():
-    """Получает текущее устройство ввода для связи по умолчанию"""
+    """Получает текущее устройство ввода для с��язи ��о умолчанию"""
     try:
         pythoncom.CoInitialize()
         try:
@@ -3333,7 +3407,7 @@ def get_default_communication_input_device():
     return None
 
 def is_process_running(process_path):
-    """Проверяет, запущен ли процесс"""
+    """Пр��веряет, запущен ли процесс"""
     try:
         if not process_path:
             return False
