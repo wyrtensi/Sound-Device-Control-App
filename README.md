@@ -1,7 +1,7 @@
 ![image](https://github.com/user-attachments/assets/16e5b7ad-9f46-43ca-a330-c4ae35a86558)
 
 
-Sound Device Control App
+## Sound Device Control App (Deprecated) No longer supported.
 
 Only for Windows 10/11.
 
