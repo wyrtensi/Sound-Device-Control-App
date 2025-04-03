@@ -9,7 +9,8 @@ IMPORTANT: MAKE YOUR FIRST LAUNCH AS ADMINISTRATOR TO INSTALL AUDIO MODULE.
 
 Also install Visual C++ Redistributable for Visual Studio 2015-2022
 
-Discord server: https://discord.gg/tCAWgzHU
+>Discord: https://discord.gg/3ZHmwVuA9u
+>
 ![image](https://github.com/user-attachments/assets/02de48b0-698b-416b-8cc5-6d1eea045e8e)
 App features:
 
